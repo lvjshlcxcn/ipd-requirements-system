@@ -174,8 +174,8 @@ const requirementColumns: ColumnsType<Requirement> = [
         <Button type="link" icon={<EditOutlined />} size="small" onClick={() => window.location.href = `/requirements/edit/${record.id}`}>
           编辑
         </Button>
-        <Button type="link" icon={<CheckCircleOutlined />} size="small" style={{ color: '#52c41a' }} onClick={() => window.location.href = `/requirements/${record.id}/verification`}>
-          验证
+        <Button type="link" icon={<CheckCircleOutlined />} size="small" style={{ color: '#52c41a', fontWeight: 'bold' }} onClick={() => window.location.href = `/requirements/${record.id}/verification`}>
+          ✅ 验证
         </Button>
         <Button type="link" danger icon={<DeleteOutlined />} size="small" onClick={() => handleDelete(record.id)}>
           删除
@@ -592,6 +592,9 @@ function RequirementsPage() {
         <Space size="small">
           <Button type="link" icon={<EditOutlined />} size="small" onClick={() => window.location.href = `/requirements/edit/${record.id}`}>
             编辑
+          </Button>
+          <Button type="link" icon={<CheckCircleOutlined />} size="small" style={{ color: '#52c41a', fontWeight: 'bold' }} onClick={() => window.location.href = `/requirements/${record.id}/verification`}>
+            ✅ 验证
           </Button>
           <Button type="link" danger icon={<DeleteOutlined />} size="small" onClick={() => handleDelete(record.id)}>
             删除
