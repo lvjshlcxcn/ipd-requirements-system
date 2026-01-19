@@ -37,7 +37,7 @@ async def get_verifications(
 
     result = await db.execute(query)
     checklists = list(result.scalars().all())
-    return [VerificationChecklistResponse.model_validate(c) for c in checklists]
+    return [VerificationChecklistResponse(**c.__dict__) for c in checklists]
 
 
 @router.post("", response_model=VerificationChecklistResponse)
@@ -63,7 +63,8 @@ async def create_checklist(
         result="not_started",
         verified_by=None,
     )
-    return VerificationChecklistResponse.model_validate(checklist)
+    # Serialize the checklist object properly
+    return VerificationChecklistResponse(**checklist.__dict__)
 
 
 @router.put("/{checklist_id}", response_model=VerificationChecklistResponse)
@@ -89,7 +90,7 @@ async def update_checklist(
 
     updated = await repo.update(checklist_id, checklist_items=checklist_items_dict)
     if updated:
-        return VerificationChecklistResponse.model_validate(updated)
+        return VerificationChecklistResponse(**updated.__dict__)
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Checklist not found",
@@ -123,7 +124,7 @@ async def submit_checklist(
         verified_by=current_user.id if current_user else None,
     )
     if updated:
-        return VerificationChecklistResponse.model_validate(updated)
+        return VerificationChecklistResponse(**updated.__dict__)
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Checklist not found",
