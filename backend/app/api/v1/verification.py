@@ -1,5 +1,6 @@
 """Verification API endpoints."""
 from typing import List, Optional
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 
@@ -16,6 +17,26 @@ from app.api.deps import get_db, get_current_user
 from app.core.tenant import get_current_tenant
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
+
+
+def serialize_checklist(checklist) -> dict:
+    """Serialize verification checklist to dict for JSON response."""
+    return {
+        "id": checklist.id,
+        "requirement_id": checklist.requirement_id,
+        "verification_type": checklist.verification_type,
+        "checklist_name": checklist.checklist_name,
+        "checklist_items": checklist.checklist_items,  # JSONB field
+        "result": checklist.result,
+        "evidence_attachments": checklist.evidence_attachments,
+        "customer_feedback": checklist.customer_feedback,
+        "issues_found": checklist.issues_found,
+        "verified_by": checklist.verified_by,
+        "reviewed_by": checklist.reviewed_by,
+        "tenant_id": checklist.tenant_id,
+        "created_at": checklist.created_at.isoformat() if checklist.created_at else None,
+        "updated_at": checklist.updated_at.isoformat() if checklist.updated_at else None,
+    }
 
 router = APIRouter(prefix="/requirements/{requirement_id}/verification", tags=["verification"])
 
@@ -37,7 +58,7 @@ async def get_verifications(
 
     result = await db.execute(query)
     checklists = list(result.scalars().all())
-    return [VerificationChecklistResponse(**c.__dict__) for c in checklists]
+    return [serialize_checklist(c) for c in checklists]
 
 
 @router.post("", response_model=VerificationChecklistResponse)
@@ -64,7 +85,7 @@ async def create_checklist(
         verified_by=None,
     )
     # Serialize the checklist object properly
-    return VerificationChecklistResponse(**checklist.__dict__)
+    return serialize_checklist(checklist)
 
 
 @router.put("/{checklist_id}", response_model=VerificationChecklistResponse)
@@ -90,7 +111,7 @@ async def update_checklist(
 
     updated = await repo.update(checklist_id, checklist_items=checklist_items_dict)
     if updated:
-        return VerificationChecklistResponse(**updated.__dict__)
+        return serialize_checklist(updated)
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Checklist not found",
@@ -124,7 +145,7 @@ async def submit_checklist(
         verified_by=current_user.id if current_user else None,
     )
     if updated:
-        return VerificationChecklistResponse(**updated.__dict__)
+        return serialize_checklist(updated)
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Checklist not found",
