@@ -9,8 +9,8 @@ import { UploadAttachmentModal } from '@/components/requirements/UploadAttachmen
 import { VoiceInputTextArea } from '@/components/VoiceInputTextArea'
 import { DeepSeekIcon, ClaudeIcon } from '@/components/AIIcons'
 // Import Verification Pages
-import { VerificationListPage } from '@/pages/verifications/VerificationListPage'
-import { VerificationChecklistForm } from '@/pages/verifications/VerificationChecklistForm'
+import VerificationListPage from '@/pages/verifications/VerificationListPage'
+import VerificationChecklistForm from '@/pages/verifications/VerificationChecklistForm'
 import {
   RadarChart,
   PolarGrid,
