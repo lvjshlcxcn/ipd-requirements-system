@@ -9,7 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import verify_password
-from app.db.session import async_session, get_db as get_db_sync
+from app.db.session import get_async_db, get_db as get_db_sync
+from app.db.base import AsyncSessionLocal
 from app.models.user import User, UserRole
 from app.config import get_settings
 
@@ -28,7 +29,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     Yields:
         Async database session
     """
-    async with async_session() as session:
+    async with AsyncSessionLocal() as session:
         yield session
 
 
