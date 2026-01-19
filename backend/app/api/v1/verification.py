@@ -51,12 +51,15 @@ async def create_checklist(
     repo = BaseRepository(VerificationChecklist, db)
     tenant_id = get_current_tenant() or (current_user.tenant_id if current_user else 1)
 
+    # Convert Pydantic models to dicts for JSON serialization
+    checklist_items_dict = [item.model_dump() for item in checklist_data.checklist_items]
+
     checklist = await repo.create(
         requirement_id=requirement_id,
         tenant_id=tenant_id,
         verification_type=checklist_data.verification_type,
         checklist_name=checklist_data.checklist_name,
-        checklist_items=checklist_data.checklist_items,
+        checklist_items=checklist_items_dict,
         result="not_started",
         verified_by=None,
     )
@@ -81,7 +84,10 @@ async def update_checklist(
             detail="Checklist not found",
         )
 
-    updated = await repo.update(checklist_id, checklist_items=checklist_data.checklist_items)
+    # Convert Pydantic models to dicts for JSON serialization
+    checklist_items_dict = [item.model_dump() for item in checklist_data.checklist_items]
+
+    updated = await repo.update(checklist_id, checklist_items=checklist_items_dict)
     if updated:
         return VerificationChecklistResponse.model_validate(updated)
     raise HTTPException(
