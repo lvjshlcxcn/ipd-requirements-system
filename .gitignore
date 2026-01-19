@@ -1,0 +1,130 @@
+# ====================
+# Python / Backend
+# ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+*.db
+*.sqlite
+*.sqlite3
+
+# ====================
+# Node / Frontend
+# ====================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# ====================
+# 环境变量和敏感信息
+# ====================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+secrets.yaml
+
+# ====================
+# IDE 和编辑器
+# ====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ====================
+# 用户上传的文件
+# ====================
+uploads/
+*.tmp
+*.temp
+
+# ====================
+# 测试和覆盖率
+# ====================
+coverage/
+.nyc_output/
+test-results/
+
+# ====================
+# 备份文件
+# ====================
+backup_*/
+*.bak
+*.backup
+*_backup/
+*_副本.*
+
+# ====================
+# 临时文件
+# ====================
+*.cache
+.cache/
+.tmp/
+temp/
+
+# ====================
+# 项目特定的忽略
+# ====================
+# 个人文档（不包含项目核心代码）
+abc_mindmap.md
+abc.md
+bbc.md
+claude_code使用指南.md
+Claude_Agent_SDK使用指南.md
+MCP文件系统使用指南.md
+PostgreSQL_MCP使用指南.md
+PostgreSQL_销售数据查询指南.md
+Office工具快速参考.md
+Office文档处理指南.md
+webapp-testing实战总结.md
+webapp-testing使用指南.md
+fluid_resonance_philosophy.md
+
+# 演示文件
+*.html
+*.gif
+*.png
+*.jpg
+*.xlsx
+*.docx
+*.pptx
+*.pdf
+*.drawio
+
+# 测试脚本
+test_*.py
+create_dancing_smiley.py
+dancing_smiley_ascii.py
+get_goldwind_data.py
+office_tools.py
+
+# 测试相关
+test-*.html
+test-debug.html
+测试*.md

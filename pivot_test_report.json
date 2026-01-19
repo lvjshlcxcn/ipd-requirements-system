@@ -1,0 +1,19 @@
+{
+  "test_name": "交互式透视表测试",
+  "timestamp": "2026-01-11 11:32:11",
+  "results": {
+    "charts_found": 0,
+    "buttons_found": 0,
+    "selects_found": 0,
+    "load_time": "3.41s",
+    "page_size": "1600x3713",
+    "content_stats": {
+      "characters": 852,
+      "words": 161,
+      "lines": 128
+    },
+    "has_plotly": true,
+    "console_errors": 0
+  },
+  "status": "WARNING"
+}
