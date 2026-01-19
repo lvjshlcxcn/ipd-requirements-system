@@ -52,20 +52,20 @@ class VerificationChecklistSubmit(BaseModel):
 class VerificationChecklistResponse(BaseModel):
     """Schema for verification checklist response."""
 
-    model_config = ConfigDict(from_attributes=True)
-
     id: int
     requirement_id: int
     verification_type: str
     checklist_name: str
-    checklist_items: Dict[str, Any]
+    checklist_items: List[Dict[str, Any]]  # Changed from Dict to List
     result: str
     evidence_attachments: Optional[Dict[str, Any]]
     customer_feedback: Optional[str]
     issues_found: Optional[str]
     verified_by: Optional[int]
-    created_at: str
-    updated_at: str
+    reviewed_by: Optional[int]
+    tenant_id: int
+    created_at: str  # Will be serialized by the API
+    updated_at: str  # Will be serialized by the API
 
 
 # Verification summary
