@@ -79,11 +79,12 @@ const VerificationListPage: React.FC = () => {
         verificationService.getVerifications(parseInt(requirementId)),
         verificationService.getVerificationSummary(parseInt(requirementId)),
       ]);
-      setChecklists(checklistsData);
+      setChecklists(checklistsData || []);
       setSummary(summaryData);
     } catch (error) {
       message.error('加载验证清单失败');
       console.error(error);
+      setChecklists([]); // 确保出错时设置为空数组
     } finally {
       setLoading(false);
     }
@@ -106,6 +107,7 @@ const VerificationListPage: React.FC = () => {
 
   /** 根据当前tab过滤清单 */
   const getFilteredChecklists = () => {
+    if (!checklists) return [];
     if (activeTab === 'all') return checklists;
     return checklists.filter((c) => c.verification_type === activeTab);
   };
@@ -188,12 +190,12 @@ const VerificationListPage: React.FC = () => {
           activeKey={activeTab}
           onChange={setActiveTab}
           items={[
-            { key: 'all', label: `全部 (${checklists.length})` },
-            { key: 'fat', label: `FAT (${checklists.filter(c => c.verification_type === 'fat').length})` },
-            { key: 'sat', label: `SAT (${checklists.filter(c => c.verification_type === 'sat').length})` },
-            { key: 'uat', label: `UAT (${checklists.filter(c => c.verification_type === 'uat').length})` },
-            { key: 'prototype', label: `原型 (${checklists.filter(c => c.verification_type === 'prototype').length})` },
-            { key: 'test', label: `测试 (${checklists.filter(c => c.verification_type === 'test').length})` },
+            { key: 'all', label: `全部 (${checklists?.length || 0})` },
+            { key: 'fat', label: `FAT (${checklists?.filter(c => c.verification_type === 'fat').length || 0})` },
+            { key: 'sat', label: `SAT (${checklists?.filter(c => c.verification_type === 'sat').length || 0})` },
+            { key: 'uat', label: `UAT (${checklists?.filter(c => c.verification_type === 'uat').length || 0})` },
+            { key: 'prototype', label: `原型 (${checklists?.filter(c => c.verification_type === 'prototype').length || 0})` },
+            { key: 'test', label: `测试 (${checklists?.filter(c => c.verification_type === 'test').length || 0})` },
           ]}
         />
 
