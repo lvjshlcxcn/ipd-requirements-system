@@ -8,6 +8,9 @@ import { RTMPage } from '@/pages/rtm/RTMPage'
 import { UploadAttachmentModal } from '@/components/requirements/UploadAttachmentModal'
 import { VoiceInputTextArea } from '@/components/VoiceInputTextArea'
 import { DeepSeekIcon, ClaudeIcon } from '@/components/AIIcons'
+// Import Verification Pages
+import { VerificationListPage } from '@/pages/verifications/VerificationListPage'
+import { VerificationChecklistForm } from '@/pages/verifications/VerificationChecklistForm'
 import {
   RadarChart,
   PolarGrid,
@@ -165,11 +168,14 @@ const requirementColumns: ColumnsType<Requirement> = [
   {
     title: '操作',
     key: 'action',
-    width: 300,
+    width: 400,
     render: (_, record) => (
       <Space size="small">
         <Button type="link" icon={<EditOutlined />} size="small" onClick={() => window.location.href = `/requirements/edit/${record.id}`}>
           编辑
+        </Button>
+        <Button type="link" icon={<CheckCircleOutlined />} size="small" style={{ color: '#52c41a' }} onClick={() => window.location.href = `/requirements/${record.id}/verification`}>
+          验证
         </Button>
         <Button type="link" danger icon={<DeleteOutlined />} size="small" onClick={() => handleDelete(record.id)}>
           删除
@@ -1941,6 +1947,46 @@ export default function App() {
           <ProtectedRoute>
             <MainLayout>
               <RTMPage />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/requirements/:requirementId/verification"
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <VerificationListPage />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/requirements/:requirementId/verification/create"
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <VerificationChecklistForm mode="create" />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/requirements/:requirementId/verification/:checklistId"
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <VerificationChecklistForm mode="view" />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/requirements/:requirementId/verification/:checklistId/edit"
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <VerificationChecklistForm mode="edit" />
             </MainLayout>
           </ProtectedRoute>
         }
