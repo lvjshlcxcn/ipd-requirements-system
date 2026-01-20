@@ -28,6 +28,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     }
   }, [])
 
+  // 修复: 使用正确的 onClick 签名
   const handleMenuClick = ({ key }: { key: string }) => {
     navigate(key)
   }

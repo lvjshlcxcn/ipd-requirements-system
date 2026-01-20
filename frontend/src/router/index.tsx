@@ -7,18 +7,21 @@ import { ProtectedRoute } from '@/shared/components/layout/ProtectedRoute'
 
 const PageLoading = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-    <Spin size="large" tip="加载中..." />
+    <Spin size="large" />
   </div>
 )
 
 // 懒加载页面组件
+// 注意: 命名导出的组件需要 .then(m => ({ default: m.ComponentName }))
+// 默认导出的组件可以直接使用
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage').then(m => ({ default: m.LoginPage })))
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
 const RequirementsListPage = lazy(() => import('@/features/requirements/pages/RequirementsListPage').then(m => ({ default: m.RequirementsListPage })))
 const RequirementEditPage = lazy(() => import('@/features/requirements/pages/RequirementEditPage').then(m => ({ default: m.RequirementEditPage })))
 const AnalyticsPage = lazy(() => import('@/features/analytics/pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
 const DistributionPage = lazy(() => import('@/features/distribution/pages/DistributionPage').then(m => ({ default: m.DistributionPage })))
-const RTMPage = lazy(() => import('@/pages/rtm/RTMPage'))
+const RTMPage = lazy(() => import('@/pages/rtm/RTMPage').then(m => ({ default: m.RTMPage })))
+// 验证页面使用默认导出，不需要 .then() 转换
 const VerificationOverviewPage = lazy(() => import('@/pages/verifications/VerificationOverviewPage'))
 const VerificationListPage = lazy(() => import('@/pages/verifications/VerificationListPage'))
 const VerificationChecklistForm = lazy(() => import('@/pages/verifications/VerificationChecklistForm'))
@@ -27,7 +30,9 @@ const MainLayout = lazy(() => import('@/shared/components/layout/MainLayout').th
 function LayoutWrapper() {
   return (
     <Suspense fallback={<PageLoading />}>
-      <MainLayout />
+      <MainLayout>
+        <Outlet />
+      </MainLayout>
     </Suspense>
   )
 }
