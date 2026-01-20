@@ -184,12 +184,12 @@ describe('RTM Service', () => {
 
   describe('deleteLink', () => {
     it('应该成功删除追溯关联', async () => {
-      vi.mocked(api.delete).mockResolvedValue({ message: '删除成功' })
+      vi.mocked(api.delete).mockResolvedValue({ message: '删除成功' } as any)
 
       const result = await rtmService.deleteLink(1)
 
       expect(api.delete).toHaveBeenCalledWith('/rtm/links/1')
-      expect(result.message).toBe('删除成功')
+      expect((result as any).message).toBe('删除成功')
     })
 
     it('应该处理不存在的关联', async () => {

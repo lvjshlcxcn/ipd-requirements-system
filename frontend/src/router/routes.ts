@@ -8,7 +8,7 @@ const RequirementsListPage = lazy(() => import('@/features/requirements/pages/Re
 const RequirementEditPage = lazy(() => import('@/features/requirements/pages/RequirementEditPage').then(m => ({ default: m.RequirementEditPage })))
 const AnalyticsPage = lazy(() => import('@/features/analytics/pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
 const DistributionPage = lazy(() => import('@/features/distribution/pages/DistributionPage').then(m => ({ default: m.DistributionPage })))
-const RTMPage = lazy(() => import('@/pages/rtm/RTMPage'))
+const RTMPage = lazy(() => import('@/pages/rtm/RTMPage').then(m => ({ default: m.RTMPage })))
 const VerificationOverviewPage = lazy(() => import('@/pages/verifications/VerificationOverviewPage'))
 const VerificationListPage = lazy(() => import('@/pages/verifications/VerificationListPage'))
 const VerificationChecklistForm = lazy(() => import('@/pages/verifications/VerificationChecklistForm'))

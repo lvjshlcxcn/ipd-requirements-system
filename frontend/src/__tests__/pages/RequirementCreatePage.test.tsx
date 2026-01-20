@@ -36,7 +36,7 @@ vi.mock('@/services/requirement.service', () => ({
 
 import RequirementCreatePage from '@/pages/requirements/RequirementCreatePage'
 import { requirementService } from '@/services/requirement.service'
-import { message, Modal } from 'antd'
+import { Modal } from 'antd'
 
 describe('RequirementCreatePage', () => {
   beforeEach(() => {

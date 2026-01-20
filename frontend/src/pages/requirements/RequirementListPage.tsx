@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Table, Button, Tag, Space, Input, Select, Card, message } from 'antd'
 import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
+import { requirementService } from '@/services/requirement.service'
 import type { ColumnsType } from 'antd/es/table'
-import { requirementService, Requirement } from '@/services/requirement.service'
 import { UploadAttachmentModal } from '@/components/requirements/UploadAttachmentModal'
 
 interface RequirementListItem {
