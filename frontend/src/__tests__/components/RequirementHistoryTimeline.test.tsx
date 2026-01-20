@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { act } from '@testing-library/react'
 import { render, screen, waitFor, within } from '@/test/utils/render'
 import userEvent from '@testing-library/user-event'
 import { createTestQueryClient } from '@/test/utils/render'
@@ -190,7 +191,9 @@ describe('RequirementHistoryTimeline', () => {
       }, { timeout: 3000 })
 
       // Click add note button
-      await userEvent.click(screen.getByRole('button', { name: /添加备注/ }))
+      await act(async () => {
+        await userEvent.click(screen.getByRole('button', { name: /添加备注/ }))
+      })
 
       // Modal should be visible
       await waitFor(() => {
@@ -222,7 +225,9 @@ describe('RequirementHistoryTimeline', () => {
         expect(addButton).toBeInTheDocument()
       }, { timeout: 3000 })
 
-      await userEvent.click(screen.getByRole('button', { name: /添加备注/ }))
+      await act(async () => {
+        await userEvent.click(screen.getByRole('button', { name: /添加备注/ }))
+      })
 
       // Wait for modal to open and textarea to appear
       await waitFor(() => {
@@ -247,7 +252,9 @@ describe('RequirementHistoryTimeline', () => {
         console.log('Available buttons:', allButtons.map(b => b.textContent))
         throw new Error('Confirm button not found')
       }
-      await userEvent.click(confirmButton)
+      await act(async () => {
+        await userEvent.click(confirmButton)
+      })
 
       // Verify API was called
       await waitFor(() => {

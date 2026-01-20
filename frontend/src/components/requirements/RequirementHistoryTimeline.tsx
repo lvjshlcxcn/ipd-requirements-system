@@ -97,14 +97,13 @@ export function RequirementHistoryTimeline({ requirementId }: RequirementHistory
     return new Date(dateString).toLocaleString('zh-CN')
   }
 
-  const renderTimelineItem = (item: HistoryItem) => {
+  const timelineItems = history.map((item) => {
     const isStatusChange = item.action === 'status_changed' && item.from_status
 
-    return (
-      <Timeline.Item
-        key={item.id}
-        dot={<ClockCircleOutlined style={{ fontSize: '16px' }} />}
-      >
+    return {
+      key: item.id,
+      dot: <ClockCircleOutlined style={{ fontSize: '16px' }} />,
+      children: (
         <div>
           <div style={{ marginBottom: 4 }}>
             <Tag color="blue">{HISTORY_ACTION_MAP[item.action] || item.action}</Tag>
@@ -144,9 +143,9 @@ export function RequirementHistoryTimeline({ requirementId }: RequirementHistory
             </div>
           )}
         </div>
-      </Timeline.Item>
-    )
-  }
+      ),
+    }
+  })
 
   return (
     <div>
@@ -165,7 +164,7 @@ export function RequirementHistoryTimeline({ requirementId }: RequirementHistory
       ) : history.length === 0 ? (
         <Empty description="暂无历史记录" />
       ) : (
-        <Timeline mode="left">{history.map(renderTimelineItem)}</Timeline>
+        <Timeline mode="left" items={timelineItems} />
       )}
 
       <Modal
