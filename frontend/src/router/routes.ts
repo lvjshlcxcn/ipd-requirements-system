@@ -1,17 +1,18 @@
 import { lazy } from 'react'
 import type { RouteConfig } from '@/shared/types'
 
-const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'))
-const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'))
-const RequirementsListPage = lazy(() => import('@/features/requirements/pages/RequirementsListPage'))
-const RequirementEditPage = lazy(() => import('@/features/requirements/pages/RequirementEditPage'))
-const AnalyticsPage = lazy(() => import('@/features/analytics/pages/AnalyticsPage'))
-const DistributionPage = lazy(() => import('@/features/distribution/pages/DistributionPage'))
+// 使用 React.lazy 加载组件 - 修复为正确的方式
+const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage').then(m => ({ default: m.LoginPage })))
+const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
+const RequirementsListPage = lazy(() => import('@/features/requirements/pages/RequirementsListPage').then(m => ({ default: m.RequirementsListPage })))
+const RequirementEditPage = lazy(() => import('@/features/requirements/pages/RequirementEditPage').then(m => ({ default: m.RequirementEditPage })))
+const AnalyticsPage = lazy(() => import('@/features/analytics/pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
+const DistributionPage = lazy(() => import('@/features/distribution/pages/DistributionPage').then(m => ({ default: m.DistributionPage })))
 const RTMPage = lazy(() => import('@/pages/rtm/RTMPage'))
 const VerificationOverviewPage = lazy(() => import('@/pages/verifications/VerificationOverviewPage'))
 const VerificationListPage = lazy(() => import('@/pages/verifications/VerificationListPage'))
 const VerificationChecklistForm = lazy(() => import('@/pages/verifications/VerificationChecklistForm'))
-const MainLayout = lazy(() => import('@/shared/components/layout/MainLayout'))
+const MainLayout = lazy(() => import('@/shared/components/layout/MainLayout').then(m => ({ default: m.MainLayout })))
 
 export const routeConfigs: RouteConfig[] = [
   {
