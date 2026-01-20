@@ -1,18 +1,7 @@
 import api, { apiGet, apiPost, apiPut, apiDelete } from './api'
+import type { Requirement } from '@/shared/types/api'
 
-export interface Requirement {
-  id: number
-  requirement_no: string
-  title: string
-  description: string
-  source_channel: string
-  source_contact?: string
-  status: string
-  priority_score?: number
-  priority_rank?: number
-  collected_at: string
-  created_at: string
-}
+export type { Requirement }
 
 export interface CreateRequirementRequest {
   title: string

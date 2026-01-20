@@ -50,7 +50,23 @@
       "Bash(__NEW_LINE_1cef6416ec8555d4__ echo -e \"\\\\n4. 查看完整的前端日志（最后100行）:\")",
       "Bash(__NEW_LINE_c6d369c43dfe4c0a__ echo -e \"\\\\n检查前端API配置...\")",
       "Bash(ls:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(psql:*)",
+      "Bash(pip install:*)",
+      "Bash(git merge:*)",
+      "Skill(superpowers:subagent-driven-development)",
+      "Bash(git rev-parse:*)",
+      "Bash(git worktree:*)",
+      "Bash(git -C /Users/kingsun/claude_study_refactor branch --show-current)",
+      "Bash(git -C /Users/kingsun/claude_study_refactor log --oneline -1)",
+      "Bash(git show:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git mv:*)",
+      "Bash(tree:*)",
+      "Bash(git cherry-pick:*)"
     ]
   }
 }

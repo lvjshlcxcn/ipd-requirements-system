@@ -7,7 +7,6 @@ import {
   Typography,
   Tag,
   Tabs,
-  Modal,
   message,
   Spin,
 } from 'antd'

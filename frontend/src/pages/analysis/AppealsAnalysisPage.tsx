@@ -9,6 +9,7 @@ import {
   Row,
   Col,
   InputNumber,
+  Input,
   message,
   Descriptions,
   Statistic,
@@ -18,7 +19,6 @@ import {
   SaveOutlined,
   BarChartOutlined,
 } from '@ant-design/icons'
-import React from 'react'
 
 // APPEALS 8个维度
 const appealsDimensions = [
@@ -149,7 +149,7 @@ function RadarChart({ data }: { data: number[] }) {
         ))}
 
         {/* 分数标签 */}
-        {labels.map((label, index) => {
+        {labels.map((_label, index) => {
           const angle = angleStep * index - Math.PI / 2
           const r = (data[index] / 10) * radius
           const x = center + r * Math.cos(angle)
@@ -238,7 +238,7 @@ function AppealsAnalysisPage() {
   }
 
   // 当表单值变化时更新图表
-  const onValuesChange = (changedValues: any, allValues: any) => {
+  const onValuesChange = (_changedValues: any, allValues: any) => {
     const newScores = appealsDimensions.map((dim) => {
       return allValues[`${dim.key}_score`] || 5
     })

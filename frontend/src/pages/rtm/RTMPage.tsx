@@ -14,7 +14,6 @@ import {
   Spin,
 } from 'antd'
 import {
-  PlusOutlined,
   DownloadOutlined,
   LinkOutlined,
   DisconnectOutlined,

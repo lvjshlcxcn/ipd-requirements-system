@@ -14,7 +14,6 @@ import {
   message,
 } from 'antd'
 import { DownloadOutlined } from '@ant-design/icons'
-import dayjs, { Dayjs } from 'dayjs'
 import { importExportService, ExportFilters } from '@/services/importExport.service'
 
 const { Title, Text } = Typography
@@ -50,7 +49,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         filters.date_to = values.date_range[1].format('YYYY-MM-DD')
       }
 
-      const { data: job } = await importExportService.exportData(
+      await importExportService.exportData(
         values.export_type,
         filters
       )

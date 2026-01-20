@@ -1,5 +1,3 @@
-import React from 'react'
-
 // DeepSeek Logo Component
 export function DeepSeekIcon({ width = 24, height = 24 }: { width?: number; height?: number }) {
   return (

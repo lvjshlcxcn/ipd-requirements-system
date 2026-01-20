@@ -49,7 +49,7 @@ describe('useAuthStore', () => {
         },
       }
       
-      vi.mocked(authService.login).mockResolvedValue(mockResponse)
+      vi.mocked(authService.login).mockResolvedValue(mockResponse as any)
       
       const { result } = renderHook(() => useAuthStore())
       
@@ -93,7 +93,7 @@ describe('useAuthStore', () => {
           user: { id: 1, username: 'testuser', email: 'test@example.com', role: 'admin' },
         },
       }
-      vi.mocked(authService.login).mockResolvedValue(mockResponse)
+      vi.mocked(authService.login).mockResolvedValue(mockResponse as any)
       
       const { result } = renderHook(() => useAuthStore())
       

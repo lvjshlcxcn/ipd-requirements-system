@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Button, Form, Input, Card, Typography, message, Space } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import api from '@/services/api'
+import type { ApiResponse } from '@/services/api'
 
 const { Title, Text } = Typography
 
@@ -19,7 +20,7 @@ export default function LoginPage() {
       const response = await api.post('/auth/login', {
         username: values.username,
         password: values.password
-      })
+      }) as ApiResponse<{ access_token: string; user: any }>
 
       console.log('登录响应:', response)
 

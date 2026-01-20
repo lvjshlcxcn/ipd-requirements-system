@@ -17,6 +17,8 @@ import {
 } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { requirementService } from '@/services/requirement.service'
+import type { ApiResponse } from '@/services/api'
+import type { Requirement } from '@/services/requirement.service'
 
 const { TextArea } = Input
 const { Option } = Select
@@ -113,7 +115,7 @@ function RequirementCreatePage() {
 
       console.log('提交数据:', createData)
 
-      const response = await requirementService.createRequirement(createData)
+      const response = await requirementService.createRequirement(createData) as ApiResponse<Requirement>
 
       console.log('API响应:', response)
 

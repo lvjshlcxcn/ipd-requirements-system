@@ -12,7 +12,7 @@ vi.mock('@/services/api', () => ({
 }))
 
 // Mock fetch for exportMatrix
-global.fetch = vi.fn()
+;(globalThis as any).fetch = vi.fn()
 
 import api from '@/services/api'
 
@@ -184,12 +184,12 @@ describe('RTM Service', () => {
 
   describe('deleteLink', () => {
     it('应该成功删除追溯关联', async () => {
-      vi.mocked(api.delete).mockResolvedValue({ message: '删除成功' })
+      vi.mocked(api.delete).mockResolvedValue({ message: '删除成功' } as any)
 
       const result = await rtmService.deleteLink(1)
 
       expect(api.delete).toHaveBeenCalledWith('/rtm/links/1')
-      expect(result.message).toBe('删除成功')
+      expect((result as any).message).toBe('删除成功')
     })
 
     it('应该处理不存在的关联', async () => {
@@ -204,7 +204,7 @@ describe('RTM Service', () => {
 
     beforeEach(() => {
       // Mock fetch
-      global.fetch = vi.fn()
+      ;(globalThis as any).fetch = vi.fn()
       // Reset environment
       vi.stubGlobal('import', {
         meta: {
@@ -220,14 +220,14 @@ describe('RTM Service', () => {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       })
 
-      vi.mocked(global.fetch).mockResolvedValue({
+      vi.mocked((globalThis as any).fetch).mockResolvedValue({
         ok: true,
         blob: async () => mockBlob,
       } as Response)
 
       const result = await rtmService.exportMatrix('excel')
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect((globalThis as any).fetch).toHaveBeenCalledWith(
         `${API_BASE_URL}/rtm/export?format=excel`,
         expect.objectContaining({
           headers: expect.objectContaining({
@@ -242,14 +242,14 @@ describe('RTM Service', () => {
     it('应该成功导出PDF格式', async () => {
       const mockBlob = new Blob(['test'], { type: 'application/pdf' })
 
-      vi.mocked(global.fetch).mockResolvedValue({
+      vi.mocked((globalThis as any).fetch).mockResolvedValue({
         ok: true,
         blob: async () => mockBlob,
       } as Response)
 
       const result = await rtmService.exportMatrix('pdf')
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect((globalThis as any).fetch).toHaveBeenCalledWith(
         `${API_BASE_URL}/rtm/export?format=pdf`,
         expect.objectContaining({
           headers: expect.objectContaining({
@@ -266,21 +266,21 @@ describe('RTM Service', () => {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       })
 
-      vi.mocked(global.fetch).mockResolvedValue({
+      vi.mocked((globalThis as any).fetch).mockResolvedValue({
         ok: true,
         blob: async () => mockBlob,
       } as Response)
 
       await rtmService.exportMatrix()
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect((globalThis as any).fetch).toHaveBeenCalledWith(
         `${API_BASE_URL}/rtm/export?format=excel`,
         expect.any(Object)
       )
     })
 
     it('应该处理导出失败', async () => {
-      vi.mocked(global.fetch).mockResolvedValue({
+      vi.mocked((globalThis as any).fetch).mockResolvedValue({
         ok: false,
       } as Response)
 
@@ -288,7 +288,7 @@ describe('RTM Service', () => {
     })
 
     it('应该处理网络错误', async () => {
-      vi.mocked(global.fetch).mockRejectedValue(new Error('Network error'))
+      vi.mocked((globalThis as any).fetch).mockRejectedValue(new Error('Network error'))
 
       await expect(rtmService.exportMatrix('excel')).rejects.toThrow('Network error')
     })

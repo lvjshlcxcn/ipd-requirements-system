@@ -1,5 +1,5 @@
 import React from 'react'
-import { Checkbox, Form, InputNumber, Space, Typography } from 'antd'
+import { Checkbox, Form, Space, Typography } from 'antd'
 import { INVESTAnalysis } from '@/services/analysis.service'
 
 const { Title, Text } = Typography

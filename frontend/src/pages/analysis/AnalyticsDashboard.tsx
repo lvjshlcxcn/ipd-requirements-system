@@ -5,7 +5,6 @@ import {
   FundViewOutlined,
   TrophyOutlined,
 } from '@ant-design/icons'
-import React from 'react'
 
 // 模拟分析数据
 const analysisData = [

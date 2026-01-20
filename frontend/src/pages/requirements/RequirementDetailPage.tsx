@@ -8,21 +8,22 @@ import {
   BarChartOutlined,
   RadarChartOutlined,
 } from '@ant-design/icons'
-import { requirementService } from '@/services/requirement.service'
+import { requirementService, Requirement } from '@/services/requirement.service'
 import { RequirementHistoryTimeline } from '@/components/requirements/RequirementHistoryTimeline'
 import { STATUS_MAP, SOURCE_MAP, KANO_MAP, COMPLEXITY_MAP, TARGET_MAP } from '@/constants/status'
+import type { ApiResponse } from '@/services/api'
 
 function RequirementDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<Requirement | null>(null)
 
   const fetchRequirement = async () => {
     if (!id) return
     setLoading(true)
     try {
-      const response = await requirementService.getRequirement(parseInt(id))
+      const response = await requirementService.getRequirement(parseInt(id)) as ApiResponse<Requirement>
       if (response.success && response.data) {
         setData(response.data)
       } else {
@@ -53,7 +54,7 @@ function RequirementDetailPage() {
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
-          const response = await requirementService.deleteRequirement(parseInt(id!))
+          const response = await requirementService.deleteRequirement(parseInt(id!)) as ApiResponse<Requirement>
           if (response.success) {
             message.success('删除成功')
             navigate('/requirements')
@@ -85,7 +86,9 @@ function RequirementDetailPage() {
     )
   }
 
-  const tenQuestions = data.customer_need_10q || {}
+  const tenQuestions = (typeof data.customer_need_10q === 'string'
+    ? JSON.parse(data.customer_need_10q)
+    : data.customer_need_10q) || {}
 
   return (
     <div>

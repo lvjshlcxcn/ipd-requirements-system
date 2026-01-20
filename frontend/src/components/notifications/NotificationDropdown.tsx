@@ -9,8 +9,7 @@ import {
   Button,
   Empty,
 } from 'antd'
-import { BellOutlined, CheckOutlined, DeleteOutlined } from '@ant-design/icons'
-import { Notification } from '@/services/notification.service'
+import { BellOutlined, CheckOutlined } from '@ant-design/icons'
 import { useNotificationStore } from '@/stores/useNotificationStore'
 
 const { Text } = Typography
@@ -70,7 +69,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       ) : (
         <List
           dataSource={notificationItems}
-          renderItem={(item: Notification) => (
+          renderItem={(item: any) => (
             <List.Item
               key={item.id}
               style={{

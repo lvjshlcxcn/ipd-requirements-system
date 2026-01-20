@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Button, Tag, Space, Input, Select, Card, message, Modal } from 'antd'
-import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons'
+import { Table, Button, Tag, Space, Input, Select, Card, message } from 'antd'
+import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
+import { requirementService } from '@/services/requirement.service'
 import type { ColumnsType } from 'antd/es/table'
-import { requirementService, Requirement } from '@/services/requirement.service'
 import { UploadAttachmentModal } from '@/components/requirements/UploadAttachmentModal'
 
-interface Requirement {
+interface RequirementListItem {
   key: string
   no: string
   title: string
@@ -41,7 +41,7 @@ const sourceMap: Record<string, string> = {
 function RequirementListPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
-  const [data, setData] = useState<Requirement[]>([])
+  const [data, setData] = useState<RequirementListItem[]>([])
   const [searchText, setSearchText] = useState('')
   const [statusFilter, setStatusFilter] = useState<string | undefined>()
   const [sourceFilter, setSourceFilter] = useState<string | undefined>()
@@ -68,13 +68,13 @@ function RequirementListPage() {
         status,
         source_channel: sourceChannel,
         search,
-      })
+      }) as any
 
       if (response.success && response.data) {
         const { items, total } = response.data
 
         // 转换数据格式
-        const transformedData: Requirement[] = items.map((item: any) => ({
+        const transformedData: RequirementListItem[] = items.map((item: any) => ({
           key: String(item.id),
           no: item.requirement_no,
           title: item.title,
@@ -128,7 +128,7 @@ function RequirementListPage() {
     setSelectedRequirementId(null)
   }
 
-  const columns: ColumnsType<Requirement> = [
+  const columns: ColumnsType<RequirementListItem> = [
     {
       title: '需求编号',
       dataIndex: 'no',
@@ -169,7 +169,7 @@ function RequirementListPage() {
       dataIndex: 'priority',
       key: 'priority',
       width: 100,
-      sorter: (a: Requirement, b: Requirement) => a.priority - b.priority,
+      sorter: (a: any, b: any) => a.priority - b.priority,
       render: (score: number) => {
         if (!score) return '-'
         const color = score >= 80 ? '#ff4d4f' : score >= 60 ? '#faad14' : '#52c41a'
