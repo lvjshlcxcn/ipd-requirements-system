@@ -2,8 +2,7 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { Spin } from 'antd'
 
-import { routeConfigs, DEFAULT_REDIRECT } from './routes'
-import { ProtectedRoute } from '@/shared/components/layout/ProtectedRoute'
+import { DEFAULT_REDIRECT } from './routes'
 
 const PageLoading = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -98,17 +97,17 @@ export function AppRouter() {
           } />
           <Route path="/requirements/:requirementId/verification/create" element={
             <Suspense fallback={<PageLoading />}>
-              <VerificationChecklistForm />
+              <VerificationChecklistForm mode="create" />
             </Suspense>
           } />
           <Route path="/requirements/:requirementId/verification/:checklistId" element={
             <Suspense fallback={<PageLoading />}>
-              <VerificationChecklistForm />
+              <VerificationChecklistForm mode="view" />
             </Suspense>
           } />
           <Route path="/requirements/:requirementId/verification/:checklistId/edit" element={
             <Suspense fallback={<PageLoading />}>
-              <VerificationChecklistForm />
+              <VerificationChecklistForm mode="edit" />
             </Suspense>
           } />
         </Route>

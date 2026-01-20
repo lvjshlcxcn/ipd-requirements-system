@@ -45,22 +45,22 @@ api.interceptors.response.use(
 export default api
 
 // Generic API methods
-export const apiGet = <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
-  return api.get<T>(url, config)
+export const apiGet = async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+  return (await api.get<T>(url, config)) as T
 }
 
-export const apiPost = <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
-  return api.post<T>(url, data, config)
+export const apiPost = async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  return (await api.post<T>(url, data, config)) as T
 }
 
-export const apiPut = <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
-  return api.put<T>(url, data, config)
+export const apiPut = async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  return (await api.put<T>(url, data, config)) as T
 }
 
-export const apiDelete = <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
-  return api.delete<T>(url, config)
+export const apiDelete = async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+  return (await api.delete<T>(url, config)) as T
 }
 
-export const apiPatch = <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
-  return api.patch<T>(url, data, config)
+export const apiPatch = async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  return (await api.patch<T>(url, data, config)) as T
 }

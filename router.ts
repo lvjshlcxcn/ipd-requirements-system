@@ -5,7 +5,6 @@ export interface RouteConfig {
   element: LazyExoticComponent<ComponentType<any>>
   title?: string
   requireAuth?: boolean
-  mode?: 'create' | 'edit' | 'view'
   children?: RouteConfig[]
 }
 

@@ -196,15 +196,20 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                               5
                             )}
                             renderItem={(item) => {
-                              <List.Item>
-
-
-
-
-
-                              </List.Item>
+                              const [key, errors] = item as [string, string[]]
+                              return (
+                                <List.Item>
+                                  <div>
+                                    <div><strong>行 {key}:</strong></div>
+                                    {errors.map((err, idx) => (
+                                      <div key={idx} style={{ marginLeft: '10px', color: '#ff4d4f' }}>
+                                        - {err}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </List.Item>
                               )
-                            }/                            )}
+                            }}
                           />
                         }
                         type="error"
