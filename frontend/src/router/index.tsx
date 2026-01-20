@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense } from 'react'
 import { Spin } from 'antd'
 import { routeConfigs, DEFAULT_REDIRECT } from './routes'
-import { ProtectedRoute } from '@/shared/components/layout/ProtectedRoute'
 
 const PageLoading = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -10,49 +9,28 @@ const PageLoading = () => (
   </div>
 )
 
-function renderRoutes(configs: typeof routeConfigs) {
-  return configs.flatMap((config) => {
-    if (config.children) {
-      return [
-        <Route
-          key={config.path}
-          path={config.path}
-          element={
-            <Suspense fallback={<PageLoading />}>
-              {config.requireAuth ? <ProtectedRoute><config.element /></ProtectedRoute> : <config.element />}
-            </Suspense>
-          }
-        >
-          {config.path === '/' && <Route index element={<Navigate to={DEFAULT_REDIRECT} replace />} />}
-          {config.children.map(child => (
-            <Route
-              key={child.path}
-              path={child.path}
-              element={<child.element {...(child as any)} />}
-            />
-          ))}
-        </Route>
-      ]
-    }
-    return (
-      <Route
-        key={config.path}
-        path={config.path}
-        element={
-          <Suspense fallback={<PageLoading />}>
-            {config.requireAuth ? <ProtectedRoute><config.element /></ProtectedRoute> : <config.element />}
-          </Suspense>
-        }
-      />
-    )
-  })
-}
-
 export function AppRouter() {
   return (
     <Suspense fallback={<PageLoading />}>
       <Routes>
-        {renderRoutes(routeConfigs)}
+        {/* 登录页面 */}
+        <Route path="/login" element={routeConfigs[0].element} />
+        
+        {/* 主布局路由 */}
+        <Route path="/" element={routeConfigs[1].element}>
+          {routeConfigs[1].children?.map((child) => (
+            <Route
+              key={child.path}
+              path={child.path}
+              element={child.element}
+            />
+          ))}
+          
+          {/* 默认重定向 */}
+          <Route index element={<Navigate to={DEFAULT_REDIRECT} replace />} />
+        </Route>
+        
+        {/* 404 重定向 */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
