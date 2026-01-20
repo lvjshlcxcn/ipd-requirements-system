@@ -1,8 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@/test/utils/render'
 import userEvent from '@testing-library/user-event'
-import { createTestQueryClient } from '@/test/utils/render'
-import { QueryClientProvider } from '@tanstack/react-query'
 
 // Mock react-router-dom
 const mockNavigate = vi.fn()
@@ -11,18 +9,33 @@ vi.mock('react-router-dom', () => ({
 }))
 
 // Mock requirement service - must use factory function to avoid initialization issues
+const mockGetRequirements = vi.fn()
+const mockGetRequirement = vi.fn()
+const mockCreateRequirement = vi.fn()
+const mockUpdateRequirement = vi.fn()
+const mockDeleteRequirement = vi.fn()
+
 vi.mock('@/services/requirement.service', () => ({
   requirementService: {
-    getRequirements: vi.fn(),
-    getRequirement: vi.fn(),
-    createRequirement: vi.fn(),
-    updateRequirement: vi.fn(),
-    deleteRequirement: vi.fn(),
+    getRequirements: mockGetRequirements,
+    getRequirement: mockGetRequirement,
+    createRequirement: mockCreateRequirement,
+    updateRequirement: mockUpdateRequirement,
+    deleteRequirement: mockDeleteRequirement,
   },
 }))
 
 import RequirementListPage from '@/pages/requirements/RequirementListPage'
 import { requirementService } from '@/services/requirement.service'
+
+// Type assertion for mocked service
+const mockedRequirementService = requirementService as unknown as {
+  getRequirements: typeof mockGetRequirements
+  getRequirement: typeof mockGetRequirement
+  createRequirement: typeof mockCreateRequirement
+  updateRequirement: typeof mockUpdateRequirement
+  deleteRequirement: typeof mockDeleteRequirement
+}
 
 // Test data
 const mockRequirements = [
@@ -61,7 +74,7 @@ describe('RequirementListPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Reset mock to return data by default
-    requirementService.getRequirements.mockResolvedValue(mockApiResponse)
+    mockedRequirementService.getRequirements.mockResolvedValue(mockApiResponse)
   })
 
   describe('Basic Functionality', () => {
@@ -71,8 +84,8 @@ describe('RequirementListPage', () => {
     })
 
     it('should display requirements', async () => {
-      requirementService.getRequirements.mockResolvedValue(mockApiResponse)
-      
+      mockedRequirementService.getRequirements.mockResolvedValue(mockApiResponse)
+
       render(<RequirementListPage />)
 
       await waitFor(() => {
@@ -95,7 +108,7 @@ describe('RequirementListPage', () => {
 
       // Should call API with search - 使用 page_size 而非 pageSize
       await waitFor(() => {
-        expect(requirementService.getRequirements).toHaveBeenCalledWith({
+        expect(mockedRequirementService.getRequirements).toHaveBeenCalledWith({
           page: 1,
           page_size: 10,
           search: '登录'
@@ -117,7 +130,7 @@ describe('RequirementListPage', () => {
 
         // Verify API was called with empty search
         await waitFor(() => {
-          expect(requirementService.getRequirements).toHaveBeenCalledWith({
+          expect(mockedRequirementService.getRequirements).toHaveBeenCalledWith({
             page: 1,
             page_size: 10,
             search: ''
@@ -142,7 +155,7 @@ describe('RequirementListPage', () => {
           total_pages: 1,
         },
       }
-      requirementService.getRequirements.mockResolvedValue(filteredResponse)
+      mockedRequirementService.getRequirements.mockResolvedValue(filteredResponse)
 
       render(<RequirementListPage />)
 
@@ -160,7 +173,7 @@ describe('RequirementListPage', () => {
         await waitFor(
           () => {
             // 检查是否调用了getRequirements
-            expect(requirementService.getRequirements).toHaveBeenCalled()
+            expect(mockedRequirementService.getRequirements).toHaveBeenCalled()
           },
           { timeout: 3000 }
         )
@@ -203,7 +216,7 @@ describe('RequirementListPage', () => {
           total_pages: 0,
         },
       }
-      requirementService.getRequirements.mockResolvedValue(emptyResponse)
+      mockedRequirementService.getRequirements.mockResolvedValue(emptyResponse)
 
       render(<RequirementListPage />)
 
@@ -219,7 +232,7 @@ describe('RequirementListPage', () => {
       // Mock console.error to avoid noise
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-      requirementService.getRequirements.mockRejectedValue(new Error('Network error'))
+      mockedRequirementService.getRequirements.mockRejectedValue(new Error('Network error'))
 
       render(<RequirementListPage />)
 

@@ -2,7 +2,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { Card, Form, Input, Select, Button, Space, message, Row, Col } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
-import { requirementService } from '@/services/requirement.service'
+import { requirementService, Requirement } from '@/services/requirement.service'
+import type { ApiResponse } from '@/services/api'
 
 const { TextArea } = Input
 const { Option } = Select
@@ -23,13 +24,12 @@ function RequirementEditPage() {
   const navigate = useNavigate()
   const [form] = Form.useForm<RequirementForm>()
   const [loading, setLoading] = useState(false)
-  const [fetching, setFetching] = useState(false)
 
   const fetchRequirement = async () => {
     if (!id) return
-    setFetching(true)
+    setLoading(true)
     try {
-      const response = await requirementService.getRequirement(parseInt(id))
+      const response = await requirementService.getRequirement(parseInt(id)) as ApiResponse<Requirement>
       if (response.success && response.data) {
         form.setFieldsValue({
           title: response.data.title,
@@ -38,8 +38,8 @@ function RequirementEditPage() {
           source_contact: response.data.source_contact,
           status: response.data.status,
           priority_score: response.data.priority_score,
-          estimated_duration_months: response.data.estimated_duration_months,
-          complexity_level: response.data.complexity_level,
+          estimated_duration_months: (response.data as any).estimated_duration_months,
+          complexity_level: (response.data as any).complexity_level,
         })
       } else {
         message.error('获取需求详情失败')
@@ -48,7 +48,7 @@ function RequirementEditPage() {
       console.error('Fetch requirement error:', error)
       message.error('获取需求详情失败')
     } finally {
-      setFetching(false)
+      setLoading(false)
     }
   }
 
@@ -59,7 +59,7 @@ function RequirementEditPage() {
   const onFinish = async (values: RequirementForm) => {
     setLoading(true)
     try {
-      const updateData = {
+      const updateData: any = {
         title: values.title,
         description: values.description,
         source_channel: values.source_channel,
@@ -70,7 +70,7 @@ function RequirementEditPage() {
         complexity_level: values.complexity_level,
       }
 
-      const response = await requirementService.updateRequirement(parseInt(id!), updateData)
+      const response = await requirementService.updateRequirement(parseInt(id!), updateData) as ApiResponse<Requirement>
 
       if (response.success) {
         message.success('需求更新成功')

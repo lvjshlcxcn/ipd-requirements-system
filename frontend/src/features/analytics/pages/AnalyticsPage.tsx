@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Card, Form, Select, Space, Slider, Input, Button, message, Spin, Row, Col, Tag, Statistic } from 'antd'
-import type { ColumnsType } from 'antd/es/table'
 import {
   RadarChart,
   PolarGrid,
@@ -102,7 +101,7 @@ export function AnalyticsPage() {
   useEffect(() => {
     async function fetchRequirements() {
       try {
-        const response = await api.get('/requirements')
+        const response = await api.get('/requirements') as any
         const items = response?.data?.items || []
         setRequirements(items)
       } catch (error) {
@@ -122,7 +121,8 @@ export function AnalyticsPage() {
   const loadAppealsAnalysis = async (reqId: number) => {
     setLoading(true)
     try {
-      const data = await api.get(`/requirements/${reqId}/appeals`)
+      const response = await api.get(`/requirements/${reqId}/appeals`) as any
+      const data = response?.data
       console.log('Loaded APPEALS data:', data)
 
       if (data && data.dimensions) {

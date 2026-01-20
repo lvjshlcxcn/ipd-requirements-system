@@ -36,7 +36,7 @@ export const MoSCoWPrioritizer: React.FC<MoSCoWPrioritizerProps> = ({
           <div key={option.value} style={{ marginBottom: '12px' }}>
             <Radio
               checked={value.priority === option.value}
-              onChange={() => handleChange(option.value)}
+              onChange={() => handleChange(option.value as 'must_have' | 'should_have' | 'could_have' | 'wont_have')}
               disabled={disabled}
             >
               <Space>

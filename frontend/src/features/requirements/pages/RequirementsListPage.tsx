@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Table, Button, Space, Input, message, Card, Modal } from 'antd'
+import { Table, Button, Space, Input, message, Modal } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import {
   SearchOutlined,

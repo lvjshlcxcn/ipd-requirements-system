@@ -50,7 +50,7 @@ export const useRequirementStore = create<RequirementState>((set, get) => ({
         page,
         page_size: pageSize,
         ...filters,
-      })
+      }) as any
 
       set({
         requirements: response.data.items || response.data,
@@ -71,7 +71,7 @@ export const useRequirementStore = create<RequirementState>((set, get) => ({
   fetchRequirement: async (id) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await requirementService.getRequirement(id)
+      const response = await requirementService.getRequirement(id) as any
       set({
         selectedRequirement: response.data,
         isLoading: false,

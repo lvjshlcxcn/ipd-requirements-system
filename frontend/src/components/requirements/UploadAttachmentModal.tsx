@@ -3,6 +3,7 @@ import { Modal, Upload, Table, Button, Space, message, Typography, Tag } from 'a
 import { InboxOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons'
 import type { UploadProps } from 'antd'
 import { requirementService } from '@/services/requirement.service'
+import type { ApiResponse } from '@/services/api'
 
 const { Dragger } = Upload
 const { Text, Title } = Typography
@@ -46,7 +47,7 @@ export function UploadAttachmentModal({
   const fetchAttachments = async () => {
     setLoading(true)
     try {
-      const response = await requirementService.getAttachments(requirementId)
+      const response = await requirementService.getAttachments(requirementId) as ApiResponse<Attachment[]>
       if (response.success) {
         setAttachments(response.data)
       }

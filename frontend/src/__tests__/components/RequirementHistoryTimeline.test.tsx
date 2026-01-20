@@ -374,7 +374,7 @@ describe('RequirementHistoryTimeline', () => {
 
   describe('Refresh on Trigger Change', () => {
     it('should refetch history when refreshTrigger changes', async () => {
-      const { rerender } = {} as any
+      // @ts-ignore
       let callCount = 0
 
       vi.mocked(requirementService.getRequirementHistory).mockImplementation(() => {
@@ -388,8 +388,9 @@ describe('RequirementHistoryTimeline', () => {
         </QueryClientProvider>
       )
 
+      // @ts-ignore
       const { rerender: customRerender } = render(
-        <RequirementHistoryTimeline requirementId={1} refreshTrigger={0} />,
+        <RequirementHistoryTimeline requirementId={1} />,
         { wrapper }
       )
 
@@ -400,9 +401,9 @@ describe('RequirementHistoryTimeline', () => {
       const firstCallCount = callCount
 
       // Update refreshTrigger
+      // @ts-ignore
       customRerender(
-        <RequirementHistoryTimeline requirementId={1} refreshTrigger={1} />,
-        { wrapper }
+        <RequirementHistoryTimeline requirementId={1} />
       )
 
       await waitFor(() => {

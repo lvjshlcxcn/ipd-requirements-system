@@ -11,13 +11,12 @@ import {
   List,
 } from 'antd'
 import {
-  UploadOutlined,
   DownloadOutlined,
   InboxOutlined,
   FileExcelOutlined,
 } from '@ant-design/icons'
 import type { UploadProps } from 'antd'
-import { importExportService, ImportJob, ImportResult } from '@/services/importExport.service'
+import { importExportService, ImportJob } from '@/services/importExport.service'
 
 const { Title, Text } = Typography
 const { Dragger } = Upload
@@ -31,7 +30,6 @@ interface ImportModalProps {
 export const ImportModal: React.FC<ImportModalProps> = ({
   open,
   onCancel,
-  onSuccess,
 }) => {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -83,7 +81,6 @@ export const ImportModal: React.FC<ImportModalProps> = ({
         onSuccess?.(job)
         setUploadProgress(0)
         setUploading(false)
-        onSuccess?.()
       }, 1000)
     } catch (error) {
       onError?.(error as Error)

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { requirementService } from '@/services/requirement.service'
 import { STATUS_MAP, HISTORY_ACTION_MAP } from '@/constants/status'
+import type { ApiResponse } from '@/services/api'
 
 const { TextArea } = Input
 
@@ -40,7 +41,7 @@ export function RequirementHistoryTimeline({ requirementId }: RequirementHistory
   } = useQuery({
     queryKey: ['requirementHistory', requirementId],
     queryFn: async () => {
-      const response = await requirementService.getRequirementHistory(requirementId)
+      const response = await requirementService.getRequirementHistory(requirementId) as ApiResponse<HistoryItem[]>
       if (response.success && response.data) {
         return response.data
       }
@@ -55,7 +56,7 @@ export function RequirementHistoryTimeline({ requirementId }: RequirementHistory
     mutationFn: async (content: string) => {
       const response = await requirementService.addHistoryNote(requirementId, {
         comments: content,
-      })
+      }) as ApiResponse<any>
       if (!response.success) {
         throw new Error(response.message || '添加备注失败')
       }
