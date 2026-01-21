@@ -2,8 +2,8 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Dict, Any
 
-from sqlalchemy import String, Integer, Text, Boolean, ForeignKey, JSONB
-from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
+from sqlalchemy import String, Integer, Text, Boolean, ForeignKey
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -33,7 +33,7 @@ class InsightAnalysis(Base, TimestampMixin, TenantMixin):
     prompt_version: Mapped[str | None] = mapped_column(String(20), default='v1.0')
 
     # 分析结果 (JSONB)
-    analysis_result: Mapped[Dict[str, Any]] = mapped_column(PG_JSONB, nullable=False)
+    analysis_result: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
     # 十问字段(冗余存储,便于查询)
     q1_who: Mapped[str | None] = mapped_column(Text)
@@ -48,9 +48,9 @@ class InsightAnalysis(Base, TimestampMixin, TenantMixin):
     q10_value: Mapped[str | None] = mapped_column(Text)
 
     # 扩展信息 (JSONB)
-    user_persona: Mapped[Dict[str, Any] | None] = mapped_column(PG_JSONB)
-    scenario: Mapped[Dict[str, Any] | None] = mapped_column(PG_JSONB)
-    emotional_tags: Mapped[Dict[str, Any] | None] = mapped_column(PG_JSONB)
+    user_persona: Mapped[Dict[str, Any] | None] = mapped_column(JSONB)
+    scenario: Mapped[Dict[str, Any] | None] = mapped_column(JSONB)
+    emotional_tags: Mapped[Dict[str, Any] | None] = mapped_column(JSONB)
 
     # 元数据
     status: Mapped[str] = mapped_column(String(20), nullable=False, default='draft')
@@ -83,7 +83,7 @@ class UserStoryboard(Base, TimestampMixin, TenantMixin):
     description: Mapped[str | None] = mapped_column(Text)
 
     # 卡片数据 (JSONB)
-    card_data: Mapped[Dict[str, Any]] = mapped_column(PG_JSONB, nullable=False)
+    card_data: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
     # 样式配置
     card_style: Mapped[str | None] = mapped_column(String(50), default='modern')
