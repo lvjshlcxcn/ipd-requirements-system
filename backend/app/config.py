@@ -49,6 +49,20 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
     UPLOAD_DIR: str = "uploads"
 
+    # ========== DeepSeek API 配置 ==========
+    DEEPSEEK_API_KEY: str
+    DEEPSEEK_BASE_URL: str = "https://api.deepseek.com/v1"
+    DEEPSEEK_MODEL: str = "deepseek-chat"
+    DEEPSEEK_MAX_TOKENS: int = 4000
+    DEEPSEEK_TEMPERATURE: float = 0.3
+    DEEPSEEK_TIMEOUT: int = 60
+
+    # ========== 文本洞察分析配置 ==========
+    INSIGHTS_MAX_TEXT_LENGTH: int = 20000
+    INSIGHTS_ENABLE_CACHING: bool = True
+    INSIGHTS_CACHE_TTL: int = 3600
+    INSIGHTS_SEGMENT_THRESHOLD: int = 15000
+
     class Config:
         env_file = ".env"
         case_sensitive = True
