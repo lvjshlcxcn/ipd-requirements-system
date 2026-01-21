@@ -1,0 +1,1 @@
+export { TextInsightModal } from './TextInsightModal'
