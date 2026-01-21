@@ -121,7 +121,7 @@ async def health_check():
 # API v1 routes
 from app.api.v1 import (
     auth, requirements, notifications, analysis, tenant, import_export,
-    verification, appeals, distribution, rtm, attachments,
+    verification, appeals, distribution, rtm, attachments, insights,
 )
 
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
@@ -135,3 +135,4 @@ app.include_router(appeals.router, prefix=settings.API_V1_PREFIX)
 app.include_router(distribution.router, prefix=settings.API_V1_PREFIX)
 app.include_router(rtm.router, prefix=settings.API_V1_PREFIX)
 app.include_router(attachments.router, prefix=settings.API_V1_PREFIX)
+app.include_router(insights.router, prefix=settings.API_V1_PREFIX)
