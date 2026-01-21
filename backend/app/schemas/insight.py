@@ -61,19 +61,19 @@ class InsightAnalysisResult(BaseModel):
     """AI分析结果"""
 
     q1_who: str
-    q2_why: str
+    q2_why: Optional[str] = None
     q3_what_problem: str
-    q4_current_solution: str
-    q5_current_issues: str
+    q4_current_solution: Optional[str] = None
+    q5_current_issues: Optional[str] = None
     q6_ideal_solution: str
-    q7_priority: str
-    q8_frequency: str
-    q9_impact_scope: str
-    q10_value: str
+    q7_priority: Optional[str] = None
+    q8_frequency: Optional[str] = None
+    q9_impact_scope: Optional[str] = None
+    q10_value: Optional[str] = None
 
-    user_persona: UserPersona
-    scenario: Scenario
-    emotional_tags: EmotionalTags
+    user_persona: Optional[UserPersona] = None
+    scenario: Optional[Scenario] = None
+    emotional_tags: Optional[EmotionalTags] = None
     summary: str
 
 
