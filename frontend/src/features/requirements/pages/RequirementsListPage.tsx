@@ -11,6 +11,8 @@ import {
 } from '@ant-design/icons'
 import api from '@/services/api'
 import { UploadAttachmentModal } from '@/components/requirements/UploadAttachmentModal'
+import { TextInsightModal } from '@/components/insights'
+import type { Insight } from '@/types/insight'
 
 interface Requirement {
   key: string
@@ -143,6 +145,8 @@ export function RequirementsListPage() {
   const [searchText, setSearchText] = useState('')
   const [attachmentModalVisible, setAttachmentModalVisible] = useState(false)
   const [selectedRequirementId, setSelectedRequirementId] = useState<number | null>(null)
+  const [insightModalVisible, setInsightModalVisible] = useState(false)
+  const [currentInsight, setCurrentInsight] = useState<Insight | null>(null)
 
   useEffect(() => {
     async function fetchRequirements() {
@@ -207,6 +211,18 @@ export function RequirementsListPage() {
         open={attachmentModalVisible && selectedRequirementId !== null}
         onClose={handleCloseAttachmentModal}
       />
+
+      {/* 文本洞察分析弹窗 */}
+      <TextInsightModal
+        visible={insightModalVisible}
+        onClose={() => setInsightModalVisible(false)}
+        onAnalysisComplete={(insight) => {
+          setCurrentInsight(insight)
+          message.success('洞察分析完成！可查看结果')
+          // TODO: 导航到洞察详情页或显示结果
+        }}
+      />
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>需求管理</h2>
         <Space>
@@ -217,6 +233,9 @@ export function RequirementsListPage() {
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
           />
+          <Button onClick={() => setInsightModalVisible(true)}>
+            📊 AI洞察分析
+          </Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => window.location.href = '/requirements/new'}>
             新建需求
           </Button>
