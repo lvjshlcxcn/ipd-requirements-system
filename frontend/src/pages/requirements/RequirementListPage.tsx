@@ -5,6 +5,8 @@ import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import { requirementService } from '@/services/requirement.service'
 import type { ColumnsType } from 'antd/es/table'
 import { UploadAttachmentModal } from '@/components/requirements/UploadAttachmentModal'
+import { TextInsightModal } from '@/components/insights'
+import type { Insight } from '@/types/insight'
 
 interface RequirementListItem {
   key: string
@@ -52,6 +54,8 @@ function RequirementListPage() {
   })
   const [attachmentModalVisible, setAttachmentModalVisible] = useState(false)
   const [selectedRequirementId, setSelectedRequirementId] = useState<number | null>(null)
+  const [insightModalVisible, setInsightModalVisible] = useState(false)
+  const [currentInsight, setCurrentInsight] = useState<Insight | null>(null)
 
   const fetchRequirements = async (
     page = pagination.current,
@@ -221,16 +225,36 @@ function RequirementListPage() {
         open={attachmentModalVisible && selectedRequirementId !== null}
         onClose={handleCloseAttachmentModal}
       />
+
+      {/* 文本洞察分析弹窗 */}
+      <TextInsightModal
+        visible={insightModalVisible}
+        onClose={() => setInsightModalVisible(false)}
+        onAnalysisComplete={(insight) => {
+          setCurrentInsight(insight)
+          message.success('洞察分析完成！可查看结果')
+          // TODO: 导航到洞察详情页或显示结果
+        }}
+      />
+
       <Card
         title="需求列表"
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/requirements/new')}
-          >
-            新建需求
-          </Button>
+          <Space>
+            <Button
+              type="default"
+              onClick={() => setInsightModalVisible(true)}
+            >
+              📊 AI洞察分析
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/requirements/new')}
+            >
+              新建需求
+            </Button>
+          </Space>
         }
       >
         <Space style={{ marginBottom: 16 }} size="middle">
