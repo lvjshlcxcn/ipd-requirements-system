@@ -22,6 +22,36 @@ from app.prompts import get_prompt_template
 router = APIRouter(prefix="/insights", tags=["Insights"])
 
 
+def generate_insight_number(db: Session, tenant_id: int) -> str:
+    """
+    生成洞察分析编号
+
+    格式: Ai-insight-00001, Ai-insight-00002, ...
+    在同一租户下递增
+    """
+    # 获取当前租户下的所有洞察
+    insights = db.query(InsightAnalysis.insight_number).filter(
+        InsightAnalysis.tenant_id == tenant_id
+    ).all()
+
+    if insights:
+        # 提取所有编号中的数字部分，找出最大值
+        max_number = 0
+        for (insight_number,) in insights:
+            if insight_number and insight_number.startswith("Ai-insight-"):
+                try:
+                    number = int(insight_number.split("-")[-1])
+                    max_number = max(max_number, number)
+                except (ValueError, IndexError):
+                    continue
+        next_number = max_number + 1
+    else:
+        # 第一条记录
+        next_number = 1
+
+    return f"Ai-insight-{next_number:05d}"
+
+
 # ========================================================================
 # Analysis Endpoints
 # ========================================================================
@@ -67,9 +97,13 @@ async def analyze_text_insight(
     end_time = datetime.utcnow()
     duration = int((end_time - start_time).total_seconds())
 
-    # 4. 保存分析结果到数据库
+    # 4. 生成业务编号
+    insight_number = generate_insight_number(db, current_user.tenant_id)
+
+    # 5. 保存分析结果到数据库
     insight = InsightAnalysis(
         tenant_id=current_user.tenant_id,
+        insight_number=insight_number,
         input_text=request.input_text,
         text_length=text_length,
         input_source=request.input_source,

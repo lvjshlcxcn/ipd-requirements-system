@@ -21,6 +21,9 @@ class InsightAnalysis(Base, TimestampMixin, TenantMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
+    # 业务编号 (格式: Ai-insight-00001)
+    insight_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+
     # 输入信息
     input_text: Mapped[str] = mapped_column(Text, nullable=False)
     text_length: Mapped[int] = mapped_column(Integer, nullable=False)

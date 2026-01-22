@@ -6,6 +6,7 @@ const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage').then(m =>
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
 const RequirementsListPage = lazy(() => import('@/features/requirements/pages/RequirementsListPage').then(m => ({ default: m.RequirementsListPage })))
 const RequirementEditPage = lazy(() => import('@/features/requirements/pages/RequirementEditPage').then(m => ({ default: m.RequirementEditPage })))
+const InsightsListPage = lazy(() => import('@/features/insights').then(m => ({ default: m.InsightsListPage })))
 const AnalyticsPage = lazy(() => import('@/features/analytics/pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
 const DistributionPage = lazy(() => import('@/features/distribution/pages/DistributionPage').then(m => ({ default: m.DistributionPage })))
 const RTMPage = lazy(() => import('@/pages/rtm/RTMPage').then(m => ({ default: m.RTMPage })))
@@ -30,6 +31,7 @@ export const routeConfigs: RouteConfig[] = [
       { path: '/requirements', element: RequirementsListPage, title: '需求管理' },
       { path: '/requirements/new', element: RequirementEditPage, title: '新建需求' },
       { path: '/requirements/edit/:id', element: RequirementEditPage, title: '编辑需求' },
+      { path: '/insights', element: InsightsListPage, title: 'AI洞察' },
       { path: '/analytics', element: AnalyticsPage, title: '需求分析' },
       { path: '/distribution', element: DistributionPage, title: '需求分发' },
       { path: '/rtm', element: RTMPage, title: '需求跟踪' },

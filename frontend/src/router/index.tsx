@@ -17,6 +17,7 @@ const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage').then(m =>
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
 const RequirementsListPage = lazy(() => import('@/features/requirements/pages/RequirementsListPage').then(m => ({ default: m.RequirementsListPage })))
 const RequirementEditPage = lazy(() => import('@/features/requirements/pages/RequirementEditPage').then(m => ({ default: m.RequirementEditPage })))
+const InsightsListPage = lazy(() => import('@/features/insights').then(m => ({ default: m.InsightsListPage })))
 const AnalyticsPage = lazy(() => import('@/features/analytics/pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
 const DistributionPage = lazy(() => import('@/features/distribution/pages/DistributionPage').then(m => ({ default: m.DistributionPage })))
 const RTMPage = lazy(() => import('@/pages/rtm/RTMPage').then(m => ({ default: m.RTMPage })))
@@ -68,6 +69,11 @@ export function AppRouter() {
           <Route path="/requirements/edit/:id" element={
             <Suspense fallback={<PageLoading />}>
               <RequirementEditPage />
+            </Suspense>
+          } />
+          <Route path="/insights" element={
+            <Suspense fallback={<PageLoading />}>
+              <InsightsListPage />
             </Suspense>
           } />
           <Route path="/analytics" element={

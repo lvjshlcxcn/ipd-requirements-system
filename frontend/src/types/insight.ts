@@ -45,6 +45,7 @@ export interface EmotionalTags {
 /** 洞察记录 */
 export interface Insight {
   id: number;
+  insight_number: string;
   input_text: string;
   text_length: number;
   analysis_result: InsightAnalysisResult;

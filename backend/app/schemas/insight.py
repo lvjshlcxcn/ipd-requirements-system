@@ -60,12 +60,12 @@ class EmotionalTags(BaseModel):
 class InsightAnalysisResult(BaseModel):
     """AI分析结果"""
 
-    q1_who: str
+    q1_who: Optional[str] = None
     q2_why: Optional[str] = None
-    q3_what_problem: str
+    q3_what_problem: Optional[str] = None
     q4_current_solution: Optional[str] = None
     q5_current_issues: Optional[str] = None
-    q6_ideal_solution: str
+    q6_ideal_solution: Optional[str] = None
     q7_priority: Optional[str] = None
     q8_frequency: Optional[str] = None
     q9_impact_scope: Optional[str] = None
@@ -74,13 +74,14 @@ class InsightAnalysisResult(BaseModel):
     user_persona: Optional[UserPersona] = None
     scenario: Optional[Scenario] = None
     emotional_tags: Optional[EmotionalTags] = None
-    summary: str
+    summary: Optional[str] = None
 
 
 class InsightResponse(BaseModel):
     """洞察分析响应"""
 
     id: int
+    insight_number: str
     input_text: str
     text_length: int
     analysis_result: InsightAnalysisResult

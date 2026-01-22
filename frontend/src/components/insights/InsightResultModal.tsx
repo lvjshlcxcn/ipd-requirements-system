@@ -57,7 +57,14 @@ export const InsightResultModal: React.FC<InsightResultModalProps> = ({
 
   return (
     <Modal
-      title="📊 AI洞察分析结果"
+      title={
+        <div>
+          <div>📊 AI洞察分析结果</div>
+          <div style={{ fontSize: 12, fontWeight: 'normal', marginTop: 4 }}>
+            编号: <Tag color="blue">{insight.insight_number}</Tag>
+          </div>
+        </div>
+      }
       open={visible}
       onCancel={onClose}
       width={900}
