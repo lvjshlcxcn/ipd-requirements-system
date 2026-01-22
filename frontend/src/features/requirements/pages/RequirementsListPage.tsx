@@ -11,7 +11,7 @@ import {
 } from '@ant-design/icons'
 import api from '@/services/api'
 import { UploadAttachmentModal } from '@/components/requirements/UploadAttachmentModal'
-import { TextInsightModal } from '@/components/insights'
+import { TextInsightModal, InsightResultModal } from '@/components/insights'
 import type { Insight } from '@/types/insight'
 
 interface Requirement {
@@ -146,6 +146,7 @@ export function RequirementsListPage() {
   const [attachmentModalVisible, setAttachmentModalVisible] = useState(false)
   const [selectedRequirementId, setSelectedRequirementId] = useState<number | null>(null)
   const [insightModalVisible, setInsightModalVisible] = useState(false)
+  const [resultModalVisible, setResultModalVisible] = useState(false)
   const [currentInsight, setCurrentInsight] = useState<Insight | null>(null)
 
   useEffect(() => {
@@ -218,9 +219,17 @@ export function RequirementsListPage() {
         onClose={() => setInsightModalVisible(false)}
         onAnalysisComplete={(insight) => {
           setCurrentInsight(insight)
-          message.success('洞察分析完成！可查看结果')
-          // TODO: 导航到洞察详情页或显示结果
+          setInsightModalVisible(false)
+          setResultModalVisible(true)
+          message.success('洞察分析完成！')
         }}
+      />
+
+      {/* 洞察结果展示弹窗 */}
+      <InsightResultModal
+        visible={resultModalVisible}
+        insight={currentInsight}
+        onClose={() => setResultModalVisible(false)}
       />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
