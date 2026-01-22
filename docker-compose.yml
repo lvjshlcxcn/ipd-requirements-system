@@ -17,6 +17,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - ipd_network
 
   redis:
     image: redis:7-alpine
@@ -28,6 +30,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - ipd_network
 
   backend:
     build:
@@ -37,6 +41,7 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
+      - backend_venv:/app/venv
     ports:
       - "8000:8000"
     depends_on:
@@ -45,10 +50,19 @@ services:
       redis:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql://ipd_user:ipd_pass@postgres/ipd_req_db
+      - DATABASE_URL=postgresql+asyncpg://ipd_user:ipd_pass@postgres/ipd_req_db
       - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=your-secret-key-change-in-production
+      - SECRET_KEY=ipd-secret-key-2024-change-in-production
       - DEBUG=true
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-sk-154cca2f691445d5b7df8bbc1ff43b7b}
+      - DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+      - DEEPSEEK_MODEL=deepseek-chat
+      - DEEPSEEK_MAX_TOKENS=4000
+      - DEEPSEEK_TEMPERATURE=0.3
+      - DEEPSEEK_TIMEOUT=60
+    networks:
+      - ipd_network
+    restart: unless-stopped
 
   frontend:
     build:
@@ -57,13 +71,22 @@ services:
     container_name: ipd_frontend
     volumes:
       - ./frontend:/app
-      - /app/node_modules
+      - frontend_node_modules:/app/node_modules
     ports:
       - "5173:5173"
     depends_on:
       - backend
     environment:
       - VITE_API_URL=http://localhost:8000
+    networks:
+      - ipd_network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  backend_venv:
+  frontend_node_modules:
+
+networks:
+  ipd_network:
+    driver: bridge
