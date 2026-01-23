@@ -181,7 +181,7 @@ PUT http://localhost:8000/api/v1/insights/{id}
 
 后端已在 `.env` 文件中配置了DeepSeek API：
 ```
-DEEPSEEK_API_KEY=sk-154cca2f691445d5b7df8bbc1ff43b7b
+DEEPSEEK_API_KEY=sk-154cca2f69********df8bbc1f*****
 DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
 DEEPSEEK_MODEL=deepseek-chat
 ```
