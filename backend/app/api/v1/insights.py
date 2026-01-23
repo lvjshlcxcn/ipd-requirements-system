@@ -254,3 +254,29 @@ async def link_to_requirement(
     db.commit()
 
     return {"message": "已成功关联到需求"}
+
+
+@router.delete("/{insight_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_insight(
+    insight_id: int,
+    current_user: User = Depends(get_current_user_sync),
+    db: Session = Depends(get_db),
+):
+    """删除洞察分析（级联删除关联的故事板）"""
+    insight = db.query(InsightAnalysis).filter(
+        InsightAnalysis.id == insight_id,
+        InsightAnalysis.tenant_id == current_user.tenant_id
+    ).first()
+
+    if not insight:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="洞察分析不存在"
+        )
+
+    # 级联删除会自动处理关联的 storyboards
+    db.delete(insight)
+    db.commit()
+
+    return None
+

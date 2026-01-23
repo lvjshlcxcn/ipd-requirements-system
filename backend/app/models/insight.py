@@ -65,7 +65,7 @@ class InsightAnalysis(Base, TimestampMixin, TenantMixin):
 
     # 关系
     storyboards: Mapped[List["UserStoryboard"]] = relationship(
-        "UserStoryboard", back_populates="insight"
+        "UserStoryboard", back_populates="insight", cascade="all, delete-orphan"
     )
 
 
@@ -78,7 +78,7 @@ class UserStoryboard(Base, TimestampMixin, TenantMixin):
 
     # 关联
     insight_id: Mapped[int] = mapped_column(
-        ForeignKey('insight_analyses.id'), nullable=False
+        ForeignKey('insight_analyses.id', ondelete="CASCADE"), nullable=False
     )
 
     # 内容

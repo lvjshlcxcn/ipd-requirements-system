@@ -70,6 +70,13 @@ const insightService = {
     )
     return response as unknown as { message: string }
   },
+
+  /**
+   * 删除洞察分析
+   */
+  async deleteInsight(insightId: number): Promise<void> {
+    await api.delete(`/insights/${insightId}`)
+  },
 }
 
 export default insightService

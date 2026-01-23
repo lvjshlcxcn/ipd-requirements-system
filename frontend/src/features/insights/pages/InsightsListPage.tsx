@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Table, Button, Space, Tag, message, Card, Tooltip } from 'antd'
+import { Table, Button, Space, Tag, message, Card, Tooltip, Modal } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import {
   EyeOutlined,
@@ -40,6 +40,27 @@ export const InsightsListPage: React.FC = () => {
   const handleView = (insight: Insight) => {
     setSelectedInsight(insight)
     setResultModalVisible(true)
+  }
+
+  // 删除洞察
+  const handleDelete = async (insight: Insight) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除洞察 ${insight.insight_number} 吗？此操作将同时删除关联的故事板数据，且无法恢复。`,
+      okText: '确定',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await insightService.deleteInsight(insight.id)
+          message.success('删除成功')
+          loadInsights() // 刷新列表
+        } catch (error) {
+          message.error('删除失败')
+          console.error(error)
+        }
+      }
+    })
   }
 
   // 状态映射
@@ -125,6 +146,14 @@ export const InsightsListPage: React.FC = () => {
             onClick={() => handleView(record)}
           >
             查看
+          </Button>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record)}
+          >
+            删除
           </Button>
         </Space>
       ),
