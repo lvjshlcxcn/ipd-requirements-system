@@ -20,6 +20,9 @@ describe('useAuthStore', () => {
       token: null,
       isAuthenticated: false,
       isLoading: false,
+      isLocked: false,
+      lockedUsername: null,
+      failedPasswordAttempts: 0,
     })
   })
 
@@ -85,7 +88,7 @@ describe('useAuthStore', () => {
   describe('Logout', () => {
     it('should clear user data on logout', async () => {
       const { authService } = await import('@/services/auth.service')
-      
+
       // First login
       const mockResponse = {
         data: {
@@ -94,23 +97,84 @@ describe('useAuthStore', () => {
         },
       }
       vi.mocked(authService.login).mockResolvedValue(mockResponse as any)
-      
+
       const { result } = renderHook(() => useAuthStore())
-      
+
       await act(async () => {
         await result.current.login('testuser', 'password123')
       })
-      
+
       expect(result.current.isAuthenticated).toBe(true)
-      
+
       // Then logout
       act(() => {
         result.current.logout()
       })
-      
+
       expect(result.current.user).toBeNull()
       expect(result.current.token).toBeNull()
       expect(result.current.isAuthenticated).toBe(false)
+    })
+  })
+
+  describe('Screen Lock', () => {
+    beforeEach(() => {
+      localStorage.clear()
+      const { result } = renderHook(() => useAuthStore())
+      act(() => {
+        result.current.logout()
+      })
+    })
+
+    it('should initialize with unlocked state', () => {
+      const { result } = renderHook(() => useAuthStore())
+      expect(result.current.isLocked).toBe(false)
+      expect(result.current.failedPasswordAttempts).toBe(0)
+      expect(result.current.lockedUsername).toBeNull()
+    })
+
+    it('should lock screen and save username', () => {
+      const { result } = renderHook(() => useAuthStore())
+      const username = 'testuser'
+
+      act(() => {
+        result.current.lockScreen(username)
+      })
+
+      expect(result.current.isLocked).toBe(true)
+      expect(result.current.lockedUsername).toBe(username)
+      expect(localStorage.getItem('app_screen_locked')).toBe('true')
+      expect(localStorage.getItem('app_locked_username')).toBe(username)
+    })
+
+    it('should load lock state from localStorage', () => {
+      localStorage.setItem('app_screen_locked', 'true')
+      localStorage.setItem('app_locked_username', 'testuser')
+      localStorage.setItem('app_failed_attempts', '3')
+
+      const { result } = renderHook(() => useAuthStore())
+
+      act(() => {
+        result.current.loadLockState()
+      })
+
+      expect(result.current.isLocked).toBe(true)
+      expect(result.current.lockedUsername).toBe('testuser')
+      expect(result.current.failedPasswordAttempts).toBe(3)
+    })
+
+    it('should reset failed attempts', () => {
+      const { result } = renderHook(() => useAuthStore())
+
+      act(() => {
+        result.current.lockScreen('testuser')
+        // Simulate failed attempts
+        useAuthStore.setState({ failedPasswordAttempts: 3 })
+        result.current.resetFailedAttempts()
+      })
+
+      expect(result.current.failedPasswordAttempts).toBe(0)
+      expect(localStorage.getItem('app_failed_attempts')).toBeNull()
     })
   })
 })

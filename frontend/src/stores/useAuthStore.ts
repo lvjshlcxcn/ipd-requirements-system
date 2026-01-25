@@ -16,12 +16,23 @@ interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
 
+  // Screen lock state
+  isLocked: boolean
+  failedPasswordAttempts: number
+  lockedUsername: string | null
+
   // Actions
   initialize: () => void
   login: (username: string, password: string) => Promise<void>
   register: (userData: { username: string; email: string; password: string }) => Promise<void>
   logout: () => void
   fetchCurrentUser: () => Promise<void>
+
+  // Screen lock actions
+  lockScreen: (username: string) => void
+  unlockScreen: (password: string) => Promise<boolean>
+  resetFailedAttempts: () => void
+  loadLockState: () => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -31,6 +42,11 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       isLoading: false,
+
+      // Screen lock state
+      isLocked: false,
+      failedPasswordAttempts: 0,
+      lockedUsername: null,
 
       // 初始化：如果有 token 则自动设置为已认证
       initialize: () => {
@@ -91,7 +107,14 @@ export const useAuthStore = create<AuthState>()(
           user: null,
           token: null,
           isAuthenticated: false,
+          isLocked: false,
+          lockedUsername: null,
+          failedPasswordAttempts: 0,
         })
+        localStorage.removeItem('app_screen_locked')
+        localStorage.removeItem('app_locked_username')
+        localStorage.removeItem('app_locked_time')
+        localStorage.removeItem('app_failed_attempts')
       },
 
       fetchCurrentUser: async () => {
@@ -115,13 +138,85 @@ export const useAuthStore = create<AuthState>()(
           })
         }
       },
+
+      // Screen lock methods
+      lockScreen: (username: string) => {
+        set({
+          isLocked: true,
+          lockedUsername: username,
+          failedPasswordAttempts: 0,
+        })
+        localStorage.setItem('app_screen_locked', 'true')
+        localStorage.setItem('app_locked_username', username)
+        localStorage.setItem('app_locked_time', Date.now().toString())
+        localStorage.removeItem('app_failed_attempts')
+      },
+
+      unlockScreen: async (password: string) => {
+        const state = get()
+
+        try {
+          // Call login API to verify password
+          const response = await authService.login({
+            username: state.lockedUsername!,
+            password,
+          })
+
+          // Verification successful
+          localStorage.removeItem('app_screen_locked')
+          localStorage.removeItem('app_locked_username')
+          localStorage.removeItem('app_locked_time')
+          localStorage.removeItem('app_failed_attempts')
+
+          set({
+            isLocked: false,
+            lockedUsername: null,
+            failedPasswordAttempts: 0,
+          })
+
+          return true
+        } catch (error) {
+          // Verification failed
+          const attempts = (state.failedPasswordAttempts || 0) + 1
+          localStorage.setItem('app_failed_attempts', attempts.toString())
+
+          if (attempts >= 5) {
+            // 5 failures, force logout
+            get().logout()
+          } else {
+            set({ failedPasswordAttempts: attempts })
+          }
+
+          return false
+        }
+      },
+
+      resetFailedAttempts: () => {
+        set({ failedPasswordAttempts: 0 })
+        localStorage.removeItem('app_failed_attempts')
+      },
+
+      loadLockState: () => {
+        const isLocked = localStorage.getItem('app_screen_locked') === 'true'
+        const lockedUsername = localStorage.getItem('app_locked_username')
+        const failedAttempts = parseInt(localStorage.getItem('app_failed_attempts') || '0', 10)
+
+        set({
+          isLocked,
+          lockedUsername,
+          failedPasswordAttempts: failedAttempts,
+        })
+      },
     }),
     {
       name: 'auth-storage',
       partialize: (state) => ({
         token: state.token,
         user: state.user,
-        isAuthenticated: state.isAuthenticated
+        isAuthenticated: state.isAuthenticated,
+        isLocked: state.isLocked,
+        lockedUsername: state.lockedUsername,
+        failedPasswordAttempts: state.failedPasswordAttempts,
       }),
     }
   )
