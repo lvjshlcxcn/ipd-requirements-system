@@ -119,4 +119,25 @@ describe('useSessionTimeout - Lock Mode', () => {
 
     expect(onLock).toHaveBeenCalledTimes(1)
   })
+
+  test('锁定模式下未提供 onLock 回调时不应该登出', () => {
+    const logout = vi.fn()
+
+    renderHook(() =>
+      useSessionTimeout({
+        mode: 'lock',
+        lockTimeoutMs: 1000,
+        // onLock not provided
+        isAuthenticated: true,
+      })
+    )
+
+    // 快进 1 秒
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
+
+    // 应该不调用 logout（因为没有 onLock 回调）
+    expect(logout).not.toHaveBeenCalled()
+  })
 })

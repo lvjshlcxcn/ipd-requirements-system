@@ -96,10 +96,15 @@ export function useSessionTimeout(options: SessionTimeoutOptions = {}) {
 
   /** 执行超时操作（登出或锁定） */
   const performAction = useCallback(() => {
-    if (mode === 'lock' && onLock) {
-      log('执行屏幕锁定')
-      clearTimers()
-      onLock()
+    if (mode === 'lock') {
+      if (onLock) {
+        log('执行屏幕锁定')
+        clearTimers()
+        onLock()
+      } else {
+        log('警告：锁定模式未提供 onLock 回调，跳过锁定操作')
+        clearTimers()
+      }
     } else {
       log('执行自动登出')
       clearTimers()
