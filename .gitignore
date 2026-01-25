@@ -111,6 +111,10 @@ webapp-testing实战总结.md
 webapp-testing使用指南.md
 fluid_resonance_philosophy.md
 
+# 业务数据和日志
+data/
+logs/
+
 # 演示文件
 *.html
 *.gif
