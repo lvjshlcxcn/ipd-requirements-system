@@ -18,7 +18,7 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout, initialize, user, lockScreen } = useAuthStore()
+  const { logout, initialize, lockScreen, user } = useAuthStore()
   const [userInfo, setUserInfo] = useState<any>(null)
   const [collapsed, setCollapsed] = useState(false)
   const [countdownVisible, setCountdownVisible] = useState(false)
@@ -64,10 +64,13 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   // 锁屏倒计时处理函数
   const handleLockCountdown = useCallback((seconds: number) => {
+    console.log('[MainLayout] 锁屏屏倒计时更新:', seconds, '秒')
     if (!lockCountdownActiveRef.current) {
       lockCountdownActiveRef.current = true
       setLockCountdownVisible(true)
+      console.log('[MainLayout] 锁屏倒计时 Modal 已显示')
     }
+    // 使用函数式更新确保每次都能获取最新值
     setLockCountdownSeconds(seconds)
   }, [])
 
@@ -76,21 +79,61 @@ export function MainLayout({ children }: MainLayoutProps) {
     lockCountdownActiveRef.current = false
   }, [])
 
+  // 锁定回调 - 使用 useCallback 防止每次渲染都重新创建
+  const handleLock = useCallback(() => {
+    // 优先使用 store 中的 user，其次使用 localStorage，最后使用已保存的 lockedUsername
+    let username = user?.username || userInfo?.username
+
+    // 如果当前无法获取用户名，尝试从已保存的锁屏状态中获取
+    if (!username) {
+      const savedUsername = useAuthStore.getState().lockedUsername ||
+                           localStorage.getItem('app_locked_username')
+      if (savedUsername) {
+        username = savedUsername
+        console.log('[MainLayout] 使用已保存的用户名:', username)
+      }
+    }
+
+    // 如果仍然无法获取用户名，记录错误但不锁定（避免使用虚假用户名）
+    if (!username) {
+      console.error('[MainLayout] 无法获取用户名，跳过锁屏', {
+        'store.user': user,
+        'userInfo': userInfo,
+        'lockedUsername': useAuthStore.getState().lockedUsername
+      })
+      return
+    }
+
+    console.log('[MainLayout] 执行锁屏，用户名:', username, '(store.user:', user, ')')
+    lockScreen(username)
+  }, [lockScreen, user, userInfo])
+
   // 会话超时管理（锁定模式：1分钟无活动自动锁定，3分钟强制登出作为安全兜底）
   // 正式配置：1分钟锁定，提前10秒开始倒计时，3分钟登出作为安全兜底
-  useSessionTimeout({
+  const { resetTimeout: resetSessionTimeout } = useSessionTimeout({
     mode: 'lock',
     lockTimeoutMs: 1 * 60 * 1000, // 1 分钟锁定
     timeoutMs: 3 * 60 * 1000, // 3 分钟登出（安全兜底）
     warningSeconds: 10, // 提前 10 秒开始倒计时
-    debug: false, // 关闭调试日志
-    onLock: () => {
-      lockScreen(user?.username || 'User')
-    },
+    debug: true, // 开启调试日志以诊断倒计时问题
+    onLock: handleLock,
     onCountdown: handleLockCountdown,
     onCancelCountdown: handleCancelLockCountdown,
-    isAuthenticated: !!user,
   })
+
+  // 手动取消锁屏倒计时（点击"继续工作"按钮时调用）
+  const handleContinueWork = useCallback(() => {
+    console.log('[MainLayout] 用户点击"继续工作"按钮（锁屏倒计时）')
+    handleCancelLockCountdown()
+    resetSessionTimeout()
+  }, [handleCancelLockCountdown, resetSessionTimeout])
+
+  // 手动取消登出倒计时（点击"继续工作"按钮时调用）
+  const handleContinueLogout = useCallback(() => {
+    console.log('[MainLayout] 用户点击"继续工作"按钮（登出倒计时）')
+    handleCancelCountdown()
+    resetSessionTimeout()
+  }, [handleCancelCountdown, resetSessionTimeout])
 
   // 修复: 使用正确的 onClick 签名
   const handleMenuClick = ({ key }: { key: string }) => {
@@ -232,9 +275,9 @@ export function MainLayout({ children }: MainLayoutProps) {
           </Space>
         }
         open={lockCountdownVisible}
-        onCancel={() => {}} // 不需要处理，useSessionTimeout 会监听点击事件
+        onCancel={handleContinueWork}
         footer={[
-          <Button key="continue" type="primary" onClick={() => {}}>
+          <Button key="continue" type="primary" onClick={handleContinueWork}>
             继续工作
           </Button>,
         ]}
@@ -268,9 +311,9 @@ export function MainLayout({ children }: MainLayoutProps) {
           </Space>
         }
         open={countdownVisible}
-        onCancel={() => {}} // 不需要处理，useSessionTimeout 会监听点击事件
+        onCancel={handleContinueLogout}
         footer={[
-          <Button key="continue" type="primary" onClick={() => {}}>
+          <Button key="continue" type="primary" onClick={handleContinueLogout}>
             继续工作
           </Button>,
         ]}

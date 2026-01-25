@@ -77,7 +77,17 @@ export const useAuthStore = create<AuthState>()(
             token: access_token,
             isAuthenticated: true,
             isLoading: false,
+            // 登录时清除所有锁屏状态
+            isLocked: false,
+            lockedUsername: null,
+            failedPasswordAttempts: 0,
           })
+
+          // 清除 localStorage 中的锁屏相关数据
+          localStorage.removeItem('app_screen_locked')
+          localStorage.removeItem('app_locked_username')
+          localStorage.removeItem('app_locked_time')
+          localStorage.removeItem('app_failed_attempts')
         } catch (error: unknown) {
           set({ isLoading: false })
           throw error
@@ -97,7 +107,17 @@ export const useAuthStore = create<AuthState>()(
             token: access_token,
             isAuthenticated: true,
             isLoading: false,
+            // 注册时清除所有锁屏状态
+            isLocked: false,
+            lockedUsername: null,
+            failedPasswordAttempts: 0,
           })
+
+          // 清除 localStorage 中的锁屏相关数据
+          localStorage.removeItem('app_screen_locked')
+          localStorage.removeItem('app_locked_username')
+          localStorage.removeItem('app_locked_time')
+          localStorage.removeItem('app_failed_attempts')
         } catch (error: unknown) {
           set({ isLoading: false })
           throw error
@@ -148,6 +168,8 @@ export const useAuthStore = create<AuthState>()(
           throw new Error('Username is required to lock screen')
         }
 
+        console.log('[AuthStore] 锁定屏幕，用户名:', username)
+
         set({
           isLocked: true,
           lockedUsername: username,
@@ -157,21 +179,59 @@ export const useAuthStore = create<AuthState>()(
         localStorage.setItem('app_locked_username', username)
         localStorage.setItem('app_locked_time', Date.now().toString())
         localStorage.removeItem('app_failed_attempts')
+
+        console.log('[AuthStore] 锁屏状态已保存，lockedUsername:', username)
       },
 
       unlockScreen: async (password: string) => {
         const state = get()
 
-        if (!state.lockedUsername) {
-          throw new Error('Cannot unlock: no locked username found')
+        console.log('[AuthStore] unlockScreen 被调用')
+        console.log('[AuthStore] 当前状态:', {
+          lockedUsername: state.lockedUsername,
+          isLocked: state.isLocked,
+          user: state.user,
+          isAuthenticated: state.isAuthenticated
+        })
+
+        // 如果没有 lockedUsername，尝试从 user 或 localStorage 获取
+        let username = state.lockedUsername
+        if (!username) {
+          console.log('[AuthStore] lockedUsername 为空，尝试从其他地方获取')
+          username = state.user?.username
+          if (!username) {
+            console.log('[AuthStore] store.user 也为空，尝试从 localStorage 获取')
+            const userInfo = localStorage.getItem('user_info')
+            if (userInfo) {
+              try {
+                username = JSON.parse(userInfo).username
+              } catch (e) {
+                console.error('[AuthStore] 解析 user_info 失败:', e)
+              }
+            }
+          }
+
+          if (!username) {
+            console.error('[AuthStore] 无法获取用户名，解锁失败')
+            return false
+          }
+
+          console.log('[AuthStore] 从其他地方获取到用户名:', username)
         }
 
+        console.log('[AuthStore] 尝试解锁屏幕，用户名:', username)
+
         try {
-          // Call login API to verify password
-          const response = await authService.login({
-            username: state.lockedUsername,
+          // Call verifyPassword API to validate password
+          // This bypasses the global 401 interceptor to avoid auto-redirect
+          console.log('[AuthStore] 调用 verifyPassword API 验证密码...')
+
+          const response = await authService.verifyPassword({
+            username: username,
             password,
           })
+
+          console.log('[AuthStore] 密码验证成功，响应:', response)
 
           // Verification successful
           localStorage.removeItem('app_screen_locked')
@@ -185,15 +245,28 @@ export const useAuthStore = create<AuthState>()(
             failedPasswordAttempts: 0,
           })
 
+          console.log('[AuthStore] 屏幕解锁成功')
           return true
         } catch (error: unknown) {
+          console.log('[AuthStore] 密码验证失败:', error)
+
           // Verification failed
           const attempts = (state.failedPasswordAttempts || 0) + 1
           localStorage.setItem('app_failed_attempts', attempts.toString())
 
           if (attempts >= MAX_FAILED_PASSWORD_ATTEMPTS) {
             // Max failures reached, force logout
+            console.log('[AuthStore] 密码错误次数过多，强制登出')
+            // 清除锁屏相关数据
+            localStorage.removeItem('app_screen_locked')
+            localStorage.removeItem('app_locked_username')
+            localStorage.removeItem('app_failed_attempts')
+
+            // 调用 logout 清除认证状态
             get().logout()
+
+            // 强制跳转到登录页
+            window.location.href = '/login'
           } else {
             set({ failedPasswordAttempts: attempts })
           }

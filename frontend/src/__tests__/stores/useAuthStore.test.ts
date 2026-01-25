@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/useAuthStore'
 vi.mock('@/services/auth.service', () => ({
   authService: {
     login: vi.fn(),
+    verifyPassword: vi.fn(), // 添加 verifyPassword mock
     register: vi.fn(),
     logout: vi.fn(),
     setToken: vi.fn(),
@@ -201,7 +202,7 @@ describe('useAuthStore', () => {
           },
         },
       }
-      vi.mocked(authService.login).mockResolvedValue(mockResponse as any)
+      vi.mocked(authService.verifyPassword).mockResolvedValue(mockResponse as any)
 
       // Unlock with correct password
       await act(async () => {
@@ -222,8 +223,8 @@ describe('useAuthStore', () => {
         result.current.lockScreen('testuser')
       })
 
-      const mockLogin = vi.mocked(authService.login)
-      mockLogin.mockRejectedValue(new Error('Invalid password'))
+      const mockVerifyPassword = vi.mocked(authService.verifyPassword)
+      mockVerifyPassword.mockRejectedValue(new Error('Invalid password'))
 
       await act(async () => {
         const success = await result.current.unlockScreen('wrongpassword')
@@ -238,14 +239,22 @@ describe('useAuthStore', () => {
       const { authService } = await import('@/services/auth.service')
       const { result } = renderHook(() => useAuthStore())
 
+      // Mock window.location.href using Object.defineProperty
+      const mockLocation = { href: '' }
+      Object.defineProperty(window, 'location', {
+        value: mockLocation,
+        writable: true,
+        configurable: true,
+      })
+
       act(() => {
         result.current.lockScreen('testuser')
         // Set 4 failed attempts
         useAuthStore.setState({ failedPasswordAttempts: 4 })
       })
 
-      const mockLogin = vi.mocked(authService.login)
-      mockLogin.mockRejectedValue(new Error('Invalid password'))
+      const mockVerifyPassword = vi.mocked(authService.verifyPassword)
+      mockVerifyPassword.mockRejectedValue(new Error('Invalid password'))
 
       await act(async () => {
         await result.current.unlockScreen('wrongpassword')
@@ -255,18 +264,18 @@ describe('useAuthStore', () => {
       expect(result.current.isLocked).toBe(false)
       expect(result.current.lockedUsername).toBeNull()
       expect(result.current.failedPasswordAttempts).toBe(0)
+      expect(mockLocation.href).toBe('/login')
     })
 
-    it('should throw error when unlocking without locked username', async () => {
+    it('should return false when unlocking without locked username', async () => {
       const { result } = renderHook(() => useAuthStore())
 
       // Don't lock the screen, so lockedUsername is null
       expect(result.current.lockedUsername).toBeNull()
 
       await act(async () => {
-        await expect(result.current.unlockScreen('password')).rejects.toThrow(
-          'Cannot unlock: no locked username found'
-        )
+        const success = await result.current.unlockScreen('password')
+        expect(success).toBe(false) // 现在返回 false 而不是抛出错误
       })
     })
 
@@ -310,7 +319,7 @@ describe('useAuthStore', () => {
           },
         },
       }
-      vi.mocked(authService.login).mockResolvedValue(mockResponse as any)
+      vi.mocked(authService.verifyPassword).mockResolvedValue(mockResponse as any)
 
       await act(async () => {
         await result.current.unlockScreen('correctpassword')

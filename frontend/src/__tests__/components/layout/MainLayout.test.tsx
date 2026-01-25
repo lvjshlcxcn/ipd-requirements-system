@@ -7,7 +7,12 @@ import { useAuthStore } from '@/stores/useAuthStore'
 import * as useSessionTimeoutModule from '@/hooks/useSessionTimeout'
 
 // Mock useSessionTimeout
-vi.mock('@/hooks/useSessionTimeout')
+const mockResetTimeout = vi.fn()
+vi.mock('@/hooks/useSessionTimeout', () => ({
+  useSessionTimeout: vi.fn(() => ({
+    resetTimeout: mockResetTimeout,
+  })),
+}))
 
 // Mock useAuthStore
 vi.mock('@/stores/useAuthStore', () => ({

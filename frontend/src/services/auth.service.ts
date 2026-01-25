@@ -1,4 +1,5 @@
 import api, { apiPost } from './api'
+import axios from 'axios'
 
 export interface LoginRequest {
   username: string
@@ -33,12 +34,30 @@ export const authService = {
    * User login
    */
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
-    const formData = new FormData()
-    formData.append('username', credentials.username)
-    formData.append('password', credentials.password)
-    return apiPost('/auth/login', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    // 发送 JSON 格式，与后端 Pydantic BaseModel 匹配
+    return apiPost('/auth/login', credentials)
+  },
+
+  /**
+   * Verify password for screen unlock
+   * This method bypasses the global 401 interceptor to avoid auto-redirect to login page
+   */
+  verifyPassword: async (credentials: LoginRequest): Promise<AuthResponse> => {
+    const baseURL = import.meta.env.VITE_API_URL || '/api/v1'
+    const token = localStorage.getItem('access_token')
+
+    const response = await axios.post(
+      `${baseURL}/auth/login`,
+      credentials,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      }
+    )
+
+    return response.data
   },
 
   /**

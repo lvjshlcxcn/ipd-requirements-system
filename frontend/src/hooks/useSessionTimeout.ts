@@ -142,6 +142,9 @@ export function useSessionTimeout(options: SessionTimeoutOptions = {}) {
           remaining--
           if (remaining <= 0) {
             clearTimers()
+            // 倒计时结束，执行锁定或登出操作
+            log('倒计时结束，执行超时操作', { mode })
+            performAction()
           } else {
             onCountdown(remaining)
           }
