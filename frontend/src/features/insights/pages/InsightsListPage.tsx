@@ -4,13 +4,11 @@ import type { ColumnsType } from 'antd/es/table'
 import {
   EyeOutlined,
   DeleteOutlined,
-  SearchOutlined,
   ReloadOutlined,
 } from '@ant-design/icons'
 import { InsightResultModal } from '@/components/insights/InsightResultModal'
 import insightService from '@/services/insight.service'
 import type { Insight } from '@/types/insight'
-import api from '@/services/api'
 
 export const InsightsListPage: React.FC = () => {
   const [insights, setInsights] = useState<Insight[]>([])

@@ -17,6 +17,7 @@ interface AuthState {
   isLoading: boolean
 
   // Actions
+  initialize: () => void
   login: (username: string, password: string) => Promise<void>
   register: (userData: { username: string; email: string; password: string }) => Promise<void>
   logout: () => void
@@ -30,6 +31,19 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       isLoading: false,
+
+      // 初始化：如果有 token 则自动设置为已认证
+      initialize: () => {
+        // 优先检查 localStorage 中的 access_token
+        const hasTokenInStorage = localStorage.getItem('access_token')
+        const state = get()
+
+        // 如果 localStorage 有 token，但状态显示未认证，则强制设置为已认证
+        if (hasTokenInStorage && !state.isAuthenticated) {
+          console.log('[AuthStore] 检测到 token，自动设置为已认证状态')
+          set({ isAuthenticated: true })
+        }
+      },
 
       login: async (username: string, password: string) => {
         set({ isLoading: true })
@@ -104,7 +118,11 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({ token: state.token, user: state.user }),
+      partialize: (state) => ({
+        token: state.token,
+        user: state.user,
+        isAuthenticated: state.isAuthenticated
+      }),
     }
   )
 )

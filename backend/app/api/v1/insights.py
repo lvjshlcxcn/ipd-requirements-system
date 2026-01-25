@@ -22,6 +22,28 @@ from app.prompts import get_prompt_template
 router = APIRouter(prefix="/insights", tags=["Insights"])
 
 
+def require_auth(current_user: Optional[User]) -> User:
+    """
+    确保用户已认证
+
+    Args:
+        current_user: 当前用户（可能为 None）
+
+    Returns:
+        认证的用户
+
+    Raises:
+        HTTPException: 如果用户未认证
+    """
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="未认证，请先登录",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return current_user
+
+
 def generate_insight_number(db: Session, tenant_id: int) -> str:
     """
     生成洞察分析编号
@@ -59,7 +81,7 @@ def generate_insight_number(db: Session, tenant_id: int) -> str:
 @router.post("/analyze", response_model=InsightResponse)
 async def analyze_text_insight(
     request: InsightCreate,
-    current_user: User = Depends(get_current_user_sync),
+    current_user: Optional[User] = Depends(get_current_user_sync),
     db: Session = Depends(get_db),
 ):
     """
@@ -69,6 +91,9 @@ async def analyze_text_insight(
     - **input_source**: 输入来源(manual/upload/voice)
     - **analysis_mode**: 分析模式(full/quick)
     """
+    # 确保用户已认证
+    user = require_auth(current_user)
+
     # 1. 验证文本长度
     text_length = len(request.input_text)
     if text_length > 20000:
@@ -98,11 +123,11 @@ async def analyze_text_insight(
     duration = int((end_time - start_time).total_seconds())
 
     # 4. 生成业务编号
-    insight_number = generate_insight_number(db, current_user.tenant_id)
+    insight_number = generate_insight_number(db, user.tenant_id)
 
     # 5. 保存分析结果到数据库
     insight = InsightAnalysis(
-        tenant_id=current_user.tenant_id,
+        tenant_id=user.tenant_id,
         insight_number=insight_number,
         input_text=request.input_text,
         text_length=text_length,
@@ -145,12 +170,15 @@ async def list_insights(
     skip: int = Query(0, ge=0, description="跳过的记录数"),
     limit: int = Query(20, ge=1, le=100, description="返回的记录数"),
     status_filter: Optional[str] = Query(None, description="状态过滤"),
-    current_user: User = Depends(get_current_user_sync),
+    current_user: Optional[User] = Depends(get_current_user_sync),
     db: Session = Depends(get_db),
 ):
     """获取洞察分析列表"""
+    # 确保用户已认证
+    user = require_auth(current_user)
+
     query = db.query(InsightAnalysis).filter(
-        InsightAnalysis.tenant_id == current_user.tenant_id
+        InsightAnalysis.tenant_id == user.tenant_id
     )
 
     if status_filter:
@@ -166,13 +194,16 @@ async def list_insights(
 @router.get("/{insight_id}", response_model=InsightResponse)
 async def get_insight(
     insight_id: int,
-    current_user: User = Depends(get_current_user_sync),
+    current_user: Optional[User] = Depends(get_current_user_sync),
     db: Session = Depends(get_db),
 ):
     """获取洞察分析详情"""
+    # 确保用户已认证
+    user = require_auth(current_user)
+
     insight = db.query(InsightAnalysis).filter(
         InsightAnalysis.id == insight_id,
-        InsightAnalysis.tenant_id == current_user.tenant_id
+        InsightAnalysis.tenant_id == user.tenant_id
     ).first()
 
     if not insight:
@@ -188,13 +219,16 @@ async def get_insight(
 async def update_insight(
     insight_id: int,
     analysis_result: dict,
-    current_user: User = Depends(get_current_user_sync),
+    current_user: Optional[User] = Depends(get_current_user_sync),
     db: Session = Depends(get_db),
 ):
     """更新洞察分析结果(人工编辑后)"""
+    # 确保用户已认证
+    user = require_auth(current_user)
+
     insight = db.query(InsightAnalysis).filter(
         InsightAnalysis.id == insight_id,
-        InsightAnalysis.tenant_id == current_user.tenant_id
+        InsightAnalysis.tenant_id == user.tenant_id
     ).first()
 
     if not insight:
@@ -230,13 +264,16 @@ async def update_insight(
 async def link_to_requirement(
     insight_id: int,
     requirement_id: int,
-    current_user: User = Depends(get_current_user_sync),
+    current_user: Optional[User] = Depends(get_current_user_sync),
     db: Session = Depends(get_db),
 ):
     """关联到需求"""
+    # 确保用户已认证
+    user = require_auth(current_user)
+
     insight = db.query(InsightAnalysis).filter(
         InsightAnalysis.id == insight_id,
-        InsightAnalysis.tenant_id == current_user.tenant_id
+        InsightAnalysis.tenant_id == user.tenant_id
     ).first()
 
     if not insight:
@@ -259,13 +296,16 @@ async def link_to_requirement(
 @router.delete("/{insight_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_insight(
     insight_id: int,
-    current_user: User = Depends(get_current_user_sync),
+    current_user: Optional[User] = Depends(get_current_user_sync),
     db: Session = Depends(get_db),
 ):
     """删除洞察分析（级联删除关联的故事板）"""
+    # 确保用户已认证
+    user = require_auth(current_user)
+
     insight = db.query(InsightAnalysis).filter(
         InsightAnalysis.id == insight_id,
-        InsightAnalysis.tenant_id == current_user.tenant_id
+        InsightAnalysis.tenant_id == user.tenant_id
     ).first()
 
     if not insight:

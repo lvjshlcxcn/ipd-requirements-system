@@ -3,7 +3,6 @@ import { Modal, Descriptions, Tag, Divider, Card, Space } from 'antd'
 import type { Insight } from '@/types/insight'
 import {
   UserOutlined,
-  BulbOutlined,
   EnvironmentOutlined,
   HeartOutlined,
 } from '@ant-design/icons'

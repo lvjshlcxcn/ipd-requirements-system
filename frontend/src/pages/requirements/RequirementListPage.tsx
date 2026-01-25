@@ -6,7 +6,7 @@ import { requirementService } from '@/services/requirement.service'
 import type { ColumnsType } from 'antd/es/table'
 import { UploadAttachmentModal } from '@/components/requirements/UploadAttachmentModal'
 import { TextInsightModal } from '@/components/insights'
-import type { Insight } from '@/types/insight'
+// import type { Insight } from '@/types/insight' // 预留功能
 
 interface RequirementListItem {
   key: string
@@ -55,7 +55,7 @@ function RequirementListPage() {
   const [attachmentModalVisible, setAttachmentModalVisible] = useState(false)
   const [selectedRequirementId, setSelectedRequirementId] = useState<number | null>(null)
   const [insightModalVisible, setInsightModalVisible] = useState(false)
-  const [currentInsight, setCurrentInsight] = useState<Insight | null>(null)
+  // const [currentInsight, setCurrentInsight] = useState<Insight | null>(null) // 预留功能
 
   const fetchRequirements = async (
     page = pagination.current,
@@ -230,8 +230,8 @@ function RequirementListPage() {
       <TextInsightModal
         visible={insightModalVisible}
         onClose={() => setInsightModalVisible(false)}
-        onAnalysisComplete={(insight) => {
-          setCurrentInsight(insight)
+        onAnalysisComplete={(_insight) => {
+          // setCurrentInsight(_insight) // 预留功能
           message.success('洞察分析完成！可查看结果')
           // TODO: 导航到洞察详情页或显示结果
         }}
