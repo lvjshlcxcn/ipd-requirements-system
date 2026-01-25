@@ -50,6 +50,15 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock fetch
 ;(globalThis as any).fetch = vi.fn()
 
+// Mock getComputedStyle for antd Modal
+Object.defineProperty(window, 'getComputedStyle', {
+  writable: true,
+  value: vi.fn().mockImplementation(() => ({
+    getPropertyValue: vi.fn().mockReturnValue(''),
+    setProperty: vi.fn(),
+  })),
+})
+
 // Mock URL constructor and methods
 ;(globalThis as any).URL = class URL {
   constructor(url: string, base?: string) {
