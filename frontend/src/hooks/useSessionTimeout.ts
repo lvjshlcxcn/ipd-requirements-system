@@ -12,17 +12,32 @@ interface SessionTimeoutOptions {
   onCountdown?: (remainingSeconds: number) => void
   /** 取消倒计时的回调（用户点击"继续工作"时调用） */
   onCancelCountdown?: () => void
+  /** 超时模式：锁定或登出 */
+  mode?: 'lock' | 'logout'
+  /** 锁定回调（mode 为 'lock' 时调用） */
+  onLock?: () => void
+  /** 锁定超时时间（毫秒），默认 1 分钟 */
+  lockTimeoutMs?: number
+  /** 用户认证状态（控制是否启动超时） */
+  isAuthenticated?: boolean
 }
 
 /**
  * 会话超时 Hook
  *
- * 监听用户活动，如果在指定时间内无活动则自动登出
+ * 监听用户活动，如果在指定时间内无活动则自动登出或锁定屏幕
  *
  * @example
  * ```tsx
  * // 基础使用：3 分钟无活动自动登出
  * useSessionTimeout()
+ *
+ * // 锁定模式：1 分钟无活动锁定屏幕
+ * useSessionTimeout({
+ *   mode: 'lock',
+ *   lockTimeoutMs: 1 * 60 * 1000,
+ *   onLock: () => console.log('屏幕已锁定')
+ * })
  *
  * // 自定义超时时间和倒计时提示
  * useSessionTimeout({
@@ -39,10 +54,17 @@ export function useSessionTimeout(options: SessionTimeoutOptions = {}) {
     warningSeconds = 30,
     onCountdown,
     onCancelCountdown,
+    mode = 'logout', // 默认登出模式
+    onLock,
+    lockTimeoutMs = 1 * 60 * 1000, // 默认 1 分钟锁定
+    isAuthenticated: isAuthenticatedProp,
   } = options
 
   const logout = useAuthStore((state) => state.logout)
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const isAuthenticatedFromStore = useAuthStore((state) => state.isAuthenticated)
+
+  // 优先使用传入的 isAuthenticated，否则从 store 获取
+  const isAuthenticated = isAuthenticatedProp !== undefined ? isAuthenticatedProp : isAuthenticatedFromStore
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const warningTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -72,31 +94,38 @@ export function useSessionTimeout(options: SessionTimeoutOptions = {}) {
     isCountingDownRef.current = false // 清除倒计时状态
   }, [])
 
-  /** 执行登出 */
-  const performLogout = useCallback(() => {
-    log('执行自动登出')
-    clearTimers()
-
-    // 清除认证状态
-    logout()
-
-    // 跳转到登录页
-    window.location.href = '/login'
-  }, [logout, clearTimers, log])
+  /** 执行超时操作（登出或锁定） */
+  const performAction = useCallback(() => {
+    if (mode === 'lock' && onLock) {
+      log('执行屏幕锁定')
+      clearTimers()
+      onLock()
+    } else {
+      log('执行自动登出')
+      clearTimers()
+      // 登出模式：调用传入的登出函数
+      // 注意：保持向后兼容
+      logout()
+      window.location.href = '/login'
+    }
+  }, [mode, onLock, logout, clearTimers, log])
 
   /** 重置超时定时器 */
   const resetTimeout = useCallback(() => {
     clearTimers()
-    log('重置超时定时器', { timeoutMs })
+
+    // 根据模式选择超时时间
+    const actualTimeout = mode === 'lock' ? lockTimeoutMs : timeoutMs
+    log('重置超时定时器', { mode, actualTimeout })
 
     // 设置超时定时器
     timeoutRef.current = setTimeout(() => {
-      performLogout()
-    }, timeoutMs)
+      performAction()
+    }, actualTimeout)
 
     // 如果有倒计时警告，设置警告定时器
     if (warningSeconds > 0 && onCountdown) {
-      const warningTime = Math.max(0, timeoutMs - warningSeconds * 1000)
+      const warningTime = Math.max(0, actualTimeout - warningSeconds * 1000)
       warningTimeoutRef.current = setTimeout(() => {
         log('开始倒计时警告', { warningSeconds })
         isCountingDownRef.current = true // 标记倒计时开始
@@ -114,7 +143,7 @@ export function useSessionTimeout(options: SessionTimeoutOptions = {}) {
         }, 1000)
       }, warningTime)
     }
-  }, [timeoutMs, warningSeconds, onCountdown, clearTimers, performLogout, log])
+  }, [mode, lockTimeoutMs, timeoutMs, warningSeconds, onCountdown, clearTimers, performAction, log])
 
   /** 处理用户活动事件 */
   const handleActivity = useCallback(() => {
@@ -134,13 +163,14 @@ export function useSessionTimeout(options: SessionTimeoutOptions = {}) {
   }, [resetTimeout, clearTimers, log, onCancelCountdown])
 
   useEffect(() => {
-    // 如果用户未登录，不启动超时机制
+    // 如果用户未认证，不启动超时机制
     if (!isAuthenticated) {
-      log('用户未登录，跳过会话超时设置')
+      log('用户未认证，跳过会话超时设置')
       return
     }
 
-    log('启动会话超时机制', { timeoutMs, warningSeconds })
+    const actualTimeout = mode === 'lock' ? lockTimeoutMs : timeoutMs
+    log('启动会话超时机制', { mode, actualTimeout, warningSeconds })
 
     // 监听的用户活动事件
     const events = [
@@ -168,7 +198,7 @@ export function useSessionTimeout(options: SessionTimeoutOptions = {}) {
         window.removeEventListener(event, handleActivity)
       })
     }
-  }, [isAuthenticated, handleActivity, resetTimeout, clearTimers, log, timeoutMs, warningSeconds])
+  }, [isAuthenticated, handleActivity, resetTimeout, clearTimers, log, mode, lockTimeoutMs, timeoutMs, warningSeconds])
 
   return {
     /** 手动重置超时 */

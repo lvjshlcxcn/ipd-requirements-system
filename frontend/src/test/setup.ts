@@ -50,8 +50,14 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock fetch
 ;(globalThis as any).fetch = vi.fn()
 
-// Mock URL methods
-;(globalThis as any).URL = {
-  createObjectURL: vi.fn(),
-  revokeObjectURL: vi.fn(),
+// Mock URL constructor and methods
+;(globalThis as any).URL = class URL {
+  constructor(url: string, base?: string) {
+    this.url = url
+    this.base = base
+  }
+  url: string
+  base?: string
+  static createObjectURL: any = vi.fn()
+  static revokeObjectURL: any = vi.fn()
 }
