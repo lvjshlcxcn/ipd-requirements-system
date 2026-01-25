@@ -18,7 +18,7 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout, initialize, lockScreen, user } = useAuthStore()
+  const { logout, initialize, lockScreen, user, isLocked } = useAuthStore()
   const [userInfo, setUserInfo] = useState<any>(null)
   const [collapsed, setCollapsed] = useState(false)
   const [countdownVisible, setCountdownVisible] = useState(false)
@@ -134,6 +134,16 @@ export function MainLayout({ children }: MainLayoutProps) {
     handleCancelCountdown()
     resetSessionTimeout()
   }, [handleCancelCountdown, resetSessionTimeout])
+
+  // 监听解锁状态变化，解锁成功后重置会话超时
+  const prevLockedRef = useRef(isLocked)
+  useEffect(() => {
+    if (prevLockedRef.current && !isLocked) {
+      console.log('[MainLayout] 检测到解锁成功，重置会话超时定时器')
+      resetSessionTimeout()
+    }
+    prevLockedRef.current = isLocked
+  }, [isLocked, resetSessionTimeout])
 
   // 修复: 使用正确的 onClick 签名
   const handleMenuClick = ({ key }: { key: string }) => {

@@ -69,7 +69,8 @@ export function useSessionTimeout(options: SessionTimeoutOptions = {}) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const warningTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const isCountingDownRef = useRef(false) // 新增：跟踪是否正在倒计时
+  const isCountingDownRef = useRef(false) // 跟踪是否正在倒计时
+  const logoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null) // 锁定模式下的登出定时器（安全兜底）
 
   const log = useCallback((...args: unknown[]) => {
     if (debug) {
@@ -91,6 +92,10 @@ export function useSessionTimeout(options: SessionTimeoutOptions = {}) {
       clearInterval(countdownIntervalRef.current)
       countdownIntervalRef.current = null
     }
+    if (logoutTimeoutRef.current) {
+      clearTimeout(logoutTimeoutRef.current)
+      logoutTimeoutRef.current = null
+    }
     isCountingDownRef.current = false // 清除倒计时状态
   }, [])
 
@@ -99,7 +104,21 @@ export function useSessionTimeout(options: SessionTimeoutOptions = {}) {
     if (mode === 'lock') {
       if (onLock) {
         log('执行屏幕锁定')
-        clearTimers()
+        // 注意：这里不清除所有定时器，因为还需要登出定时器作为安全兜底
+        // 只清除锁定相关的定时器
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current)
+          timeoutRef.current = null
+        }
+        if (warningTimeoutRef.current) {
+          clearTimeout(warningTimeoutRef.current)
+          warningTimeoutRef.current = null
+        }
+        if (countdownIntervalRef.current) {
+          clearInterval(countdownIntervalRef.current)
+          countdownIntervalRef.current = null
+        }
+        isCountingDownRef.current = false
         onLock()
       } else {
         log('警告：锁定模式未提供 onLock 回调，跳过锁定操作')
@@ -121,12 +140,23 @@ export function useSessionTimeout(options: SessionTimeoutOptions = {}) {
 
     // 根据模式选择超时时间
     const actualTimeout = mode === 'lock' ? lockTimeoutMs : timeoutMs
-    log('重置超时定时器', { mode, actualTimeout })
+    log('重置超时定时器', { mode, actualTimeout, lockTimeoutMs, timeoutMs })
 
     // 设置超时定时器
     timeoutRef.current = setTimeout(() => {
       performAction()
     }, actualTimeout)
+
+    // 锁定模式：额外设置登出定时器作为安全兜底
+    if (mode === 'lock') {
+      log('设置安全兜底登出定时器', { timeoutMs })
+      logoutTimeoutRef.current = setTimeout(() => {
+        log('安全兜底：执行强制登出')
+        clearTimers()
+        logout()
+        window.location.href = '/login'
+      }, timeoutMs)
+    }
 
     // 如果有倒计时警告，设置警告定时器
     if (warningSeconds > 0 && onCountdown) {
@@ -151,7 +181,7 @@ export function useSessionTimeout(options: SessionTimeoutOptions = {}) {
         }, 1000)
       }, warningTime)
     }
-  }, [mode, lockTimeoutMs, timeoutMs, warningSeconds, onCountdown, clearTimers, performAction, log])
+  }, [mode, lockTimeoutMs, timeoutMs, warningSeconds, onCountdown, clearTimers, performAction, log, logout])
 
   /** 处理用户活动事件 */
   const handleActivity = useCallback(() => {
