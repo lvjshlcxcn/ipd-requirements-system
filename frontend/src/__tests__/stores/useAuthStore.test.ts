@@ -9,6 +9,7 @@ vi.mock('@/services/auth.service', () => ({
     register: vi.fn(),
     logout: vi.fn(),
     setToken: vi.fn(),
+    getCurrentUser: vi.fn(),
   },
 }))
 
@@ -171,6 +172,148 @@ describe('useAuthStore', () => {
         // Simulate failed attempts
         useAuthStore.setState({ failedPasswordAttempts: 3 })
         result.current.resetFailedAttempts()
+      })
+
+      expect(result.current.failedPasswordAttempts).toBe(0)
+      expect(localStorage.getItem('app_failed_attempts')).toBeNull()
+    })
+
+    it('should unlock screen with correct password', async () => {
+      const { authService } = await import('@/services/auth.service')
+      const { result } = renderHook(() => useAuthStore())
+
+      // First lock the screen
+      act(() => {
+        result.current.lockScreen('testuser')
+      })
+
+      expect(result.current.isLocked).toBe(true)
+
+      // Mock authService.login to return success
+      const mockResponse = {
+        data: {
+          access_token: 'test-token',
+          user: {
+            id: 1,
+            username: 'testuser',
+            email: 'test@test.com',
+            role: 'user',
+          },
+        },
+      }
+      vi.mocked(authService.login).mockResolvedValue(mockResponse as any)
+
+      // Unlock with correct password
+      await act(async () => {
+        const success = await result.current.unlockScreen('correctpassword')
+        expect(success).toBe(true)
+      })
+
+      expect(result.current.isLocked).toBe(false)
+      expect(result.current.lockedUsername).toBeNull()
+      expect(result.current.failedPasswordAttempts).toBe(0)
+    })
+
+    it('should increment failed attempts on wrong password', async () => {
+      const { authService } = await import('@/services/auth.service')
+      const { result } = renderHook(() => useAuthStore())
+
+      act(() => {
+        result.current.lockScreen('testuser')
+      })
+
+      const mockLogin = vi.mocked(authService.login)
+      mockLogin.mockRejectedValue(new Error('Invalid password'))
+
+      await act(async () => {
+        const success = await result.current.unlockScreen('wrongpassword')
+        expect(success).toBe(false)
+      })
+
+      expect(result.current.failedPasswordAttempts).toBe(1)
+      expect(result.current.isLocked).toBe(true)
+    })
+
+    it('should force logout after 5 failed attempts', async () => {
+      const { authService } = await import('@/services/auth.service')
+      const { result } = renderHook(() => useAuthStore())
+
+      act(() => {
+        result.current.lockScreen('testuser')
+        // Set 4 failed attempts
+        useAuthStore.setState({ failedPasswordAttempts: 4 })
+      })
+
+      const mockLogin = vi.mocked(authService.login)
+      mockLogin.mockRejectedValue(new Error('Invalid password'))
+
+      await act(async () => {
+        await result.current.unlockScreen('wrongpassword')
+      })
+
+      // After 5th failed attempt, should force logout
+      expect(result.current.isLocked).toBe(false)
+      expect(result.current.lockedUsername).toBeNull()
+      expect(result.current.failedPasswordAttempts).toBe(0)
+    })
+
+    it('should throw error when unlocking without locked username', async () => {
+      const { result } = renderHook(() => useAuthStore())
+
+      // Don't lock the screen, so lockedUsername is null
+      expect(result.current.lockedUsername).toBeNull()
+
+      await act(async () => {
+        await expect(result.current.unlockScreen('password')).rejects.toThrow(
+          'Cannot unlock: no locked username found'
+        )
+      })
+    })
+
+    it('should throw error when locking with empty username', () => {
+      const { result } = renderHook(() => useAuthStore())
+
+      act(() => {
+        expect(() => {
+          result.current.lockScreen('')
+        }).toThrow('Username is required to lock screen')
+      })
+
+      act(() => {
+        expect(() => {
+          result.current.lockScreen('   ')
+        }).toThrow('Username is required to lock screen')
+      })
+    })
+
+    it('should reset failed attempts on successful unlock', async () => {
+      const { authService } = await import('@/services/auth.service')
+      const { result } = renderHook(() => useAuthStore())
+
+      act(() => {
+        result.current.lockScreen('testuser')
+        // Simulate 2 failed attempts
+        useAuthStore.setState({ failedPasswordAttempts: 2 })
+      })
+
+      expect(result.current.failedPasswordAttempts).toBe(2)
+
+      // Mock successful login
+      const mockResponse = {
+        data: {
+          access_token: 'test-token',
+          user: {
+            id: 1,
+            username: 'testuser',
+            email: 'test@test.com',
+            role: 'user',
+          },
+        },
+      }
+      vi.mocked(authService.login).mockResolvedValue(mockResponse as any)
+
+      await act(async () => {
+        await result.current.unlockScreen('correctpassword')
       })
 
       expect(result.current.failedPasswordAttempts).toBe(0)

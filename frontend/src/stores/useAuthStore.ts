@@ -2,6 +2,9 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { authService } from '@/services/auth.service'
 
+// Constants
+const MAX_FAILED_PASSWORD_ATTEMPTS = 5
+
 interface User {
   id: number
   username: string
@@ -48,15 +51,15 @@ export const useAuthStore = create<AuthState>()(
       failedPasswordAttempts: 0,
       lockedUsername: null,
 
-      // 初始化：如果有 token 则自动设置为已认证
+      // Initialize: automatically set as authenticated if token exists
       initialize: () => {
-        // 优先检查 localStorage 中的 access_token
+        // Prioritize checking access_token in localStorage
         const hasTokenInStorage = localStorage.getItem('access_token')
         const state = get()
 
-        // 如果 localStorage 有 token，但状态显示未认证，则强制设置为已认证
+        // If localStorage has token but state shows unauthenticated, force authenticated state
         if (hasTokenInStorage && !state.isAuthenticated) {
-          console.log('[AuthStore] 检测到 token，自动设置为已认证状态')
+          console.log('[AuthStore] Token detected, setting authenticated state')
           set({ isAuthenticated: true })
         }
       },
@@ -75,7 +78,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           })
-        } catch (error) {
+        } catch (error: unknown) {
           set({ isLoading: false })
           throw error
         }
@@ -95,7 +98,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           })
-        } catch (error) {
+        } catch (error: unknown) {
           set({ isLoading: false })
           throw error
         }
@@ -129,7 +132,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           })
-        } catch (error) {
+        } catch (error: unknown) {
           set({
             user: null,
             token: null,
@@ -141,6 +144,10 @@ export const useAuthStore = create<AuthState>()(
 
       // Screen lock methods
       lockScreen: (username: string) => {
+        if (!username || username.trim() === '') {
+          throw new Error('Username is required to lock screen')
+        }
+
         set({
           isLocked: true,
           lockedUsername: username,
@@ -155,10 +162,14 @@ export const useAuthStore = create<AuthState>()(
       unlockScreen: async (password: string) => {
         const state = get()
 
+        if (!state.lockedUsername) {
+          throw new Error('Cannot unlock: no locked username found')
+        }
+
         try {
           // Call login API to verify password
           const response = await authService.login({
-            username: state.lockedUsername!,
+            username: state.lockedUsername,
             password,
           })
 
@@ -175,13 +186,13 @@ export const useAuthStore = create<AuthState>()(
           })
 
           return true
-        } catch (error) {
+        } catch (error: unknown) {
           // Verification failed
           const attempts = (state.failedPasswordAttempts || 0) + 1
           localStorage.setItem('app_failed_attempts', attempts.toString())
 
-          if (attempts >= 5) {
-            // 5 failures, force logout
+          if (attempts >= MAX_FAILED_PASSWORD_ATTEMPTS) {
+            // Max failures reached, force logout
             get().logout()
           } else {
             set({ failedPasswordAttempts: attempts })
