@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Table, Button, Space, Input, message, Modal } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import {
@@ -8,6 +9,7 @@ import {
   DeleteOutlined,
   CheckCircleOutlined,
   UploadOutlined,
+  SettingOutlined,
 } from '@ant-design/icons'
 import api from '@/services/api'
 import { UploadAttachmentModal } from '@/components/requirements/UploadAttachmentModal'
@@ -140,6 +142,7 @@ async function handleDelete(id: number) {
 }
 
 export function RequirementsListPage() {
+  const navigate = useNavigate()
   const [requirements, setRequirements] = useState<Requirement[]>([])
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState('')
@@ -245,7 +248,13 @@ export function RequirementsListPage() {
           <Button onClick={() => setInsightModalVisible(true)}>
             📊 AI洞察分析
           </Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => window.location.href = '/requirements/new'}>
+          <Button
+            icon={<SettingOutlined />}
+            onClick={() => navigate('/settings?tab=ipd_ten_questions')}
+          >
+            配置 Prompt
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/requirements/new')}>
             新建需求
           </Button>
         </Space>
