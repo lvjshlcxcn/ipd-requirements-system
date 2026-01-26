@@ -49,6 +49,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Add tenant middleware
@@ -57,21 +58,25 @@ app.middleware("http")(tenant_middleware)
 
 # Exception handler for AppException
 @app.exception_handler(AppException)
-async def app_exception_handler(request, exc: AppException):
-    """Handle application exceptions."""
+async def app_exception_handler(request: Request, exc: AppException):
+    """Handle application exceptions with CORS headers."""
     return JSONResponse(
         status_code=exc.status_code,
         content={
             "success": False,
             "message": exc.detail,
         },
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
+        }
     )
 
 
 # Exception handler for ValidationError
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Handle Pydantic validation errors."""
+    """Handle Pydantic validation errors with CORS headers."""
     # Format error messages
     errors = []
     for error in exc.errors():
@@ -87,6 +92,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "message": "数据验证失败",
             "detail": error_message,
         },
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
+        }
     )
 
 
@@ -122,6 +131,7 @@ async def health_check():
 from app.api.v1 import (
     auth, requirements, notifications, analysis, tenant, import_export,
     verification, appeals, distribution, rtm, attachments, insights,
+    prompt_templates,
 )
 
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
@@ -136,3 +146,4 @@ app.include_router(distribution.router, prefix=settings.API_V1_PREFIX)
 app.include_router(rtm.router, prefix=settings.API_V1_PREFIX)
 app.include_router(attachments.router, prefix=settings.API_V1_PREFIX)
 app.include_router(insights.router, prefix=settings.API_V1_PREFIX)
+app.include_router(prompt_templates.router, prefix=settings.API_V1_PREFIX)

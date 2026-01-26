@@ -37,11 +37,25 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response: AxiosResponse) => {
+    console.log('[API Response] 成功响应:', {
+      url: response.config.url,
+      method: response.config.method,
+      status: response.status,
+      data: response.data
+    })
     return response.data
   },
   (error) => {
+    console.error('[API Response] 错误响应:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    })
     if (error.response?.status === 401) {
       // Handle unauthorized - clear token and redirect to login
+      console.error('[API Response] 401 未授权，清除 token 并跳转登录')
       localStorage.removeItem('access_token')
       window.location.href = '/login'
     }
