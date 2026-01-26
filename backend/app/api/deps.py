@@ -34,21 +34,24 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    token: Annotated[Optional[str], Depends(oauth2_scheme)],
     db: Annotated[AsyncSession, Depends(get_db)],
-) -> User:
+) -> Optional[User]:
     """Get current authenticated user from JWT token.
 
     Args:
-        token: JWT access token
+        token: JWT access token (optional)
         db: Database session
 
     Returns:
-        Current authenticated user
+        Current authenticated user or None
 
     Raises:
         HTTPException: If token is invalid or user not found
     """
+    if not token:
+        return None
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -57,11 +60,23 @@ async def get_current_user(
 
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        user_id: int = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
+        user_id_str: str = payload.get("sub")
+        tenant_id: int = payload.get("tenant_id")
+        if user_id_str is None:
+            return None
+
+        # Convert user_id from string to int
+        try:
+            user_id = int(user_id_str)
+        except (ValueError, TypeError):
+            return None
+
+        # Set tenant context for multi-tenancy
+        if tenant_id is not None:
+            from app.core.tenant import set_tenant_context
+            set_tenant_context(tenant_id)
     except JWTError:
-        raise credentials_exception
+        return None
 
     # Fetch user from database
     from sqlalchemy import select
@@ -69,14 +84,8 @@ async def get_current_user(
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
 
-    if user is None:
-        raise credentials_exception
-
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
-        )
+    if user is None or not user.is_active:
+        return None
 
     return user
 
@@ -126,8 +135,14 @@ def get_current_user_sync(
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: int = payload.get("sub")
+        tenant_id: int = payload.get("tenant_id")
         if user_id is None:
             return None
+
+        # Set tenant context for multi-tenancy
+        if tenant_id is not None:
+            from app.core.tenant import set_tenant_context
+            set_tenant_context(tenant_id)
     except (JWTError, ValueError):
         return None
 

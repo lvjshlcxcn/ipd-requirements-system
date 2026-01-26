@@ -26,6 +26,7 @@ const VerificationOverviewPage = lazy(() => import('@/pages/verifications/Verifi
 const VerificationListPage = lazy(() => import('@/pages/verifications/VerificationListPage'))
 const VerificationChecklistForm = lazy(() => import('@/pages/verifications/VerificationChecklistForm'))
 const MainLayout = lazy(() => import('@/shared/components/layout/MainLayout').then(m => ({ default: m.MainLayout })))
+const SettingsPage = lazy(() => import('@/features/settings/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 
 function LayoutWrapper() {
   return (
@@ -114,6 +115,11 @@ export function AppRouter() {
           <Route path="/requirements/:requirementId/verification/:checklistId/edit" element={
             <Suspense fallback={<PageLoading />}>
               <VerificationChecklistForm mode="edit" />
+            </Suspense>
+          } />
+          <Route path="/settings" element={
+            <Suspense fallback={<PageLoading />}>
+              <SettingsPage />
             </Suspense>
           } />
         </Route>

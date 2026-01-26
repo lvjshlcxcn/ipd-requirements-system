@@ -1,4 +1,4 @@
-import { DashboardOutlined, FileTextOutlined, CheckCircleOutlined, BarChartOutlined, SendOutlined, PartitionOutlined, BulbOutlined } from '@ant-design/icons'
+import { DashboardOutlined, FileTextOutlined, CheckCircleOutlined, BarChartOutlined, SendOutlined, PartitionOutlined, BulbOutlined, SettingOutlined } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 
 export const MENU_ITEMS: MenuProps['items'] = [
@@ -9,4 +9,5 @@ export const MENU_ITEMS: MenuProps['items'] = [
   { key: '/analytics', icon: <BarChartOutlined />, label: '需求分析' },
   { key: '/distribution', icon: <SendOutlined />, label: '需求分发' },
   { key: '/rtm', icon: <PartitionOutlined />, label: '需求跟踪' },
+  { key: '/settings', icon: <SettingOutlined />, label: '配置' },
 ]

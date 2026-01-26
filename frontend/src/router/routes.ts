@@ -14,6 +14,7 @@ const VerificationOverviewPage = lazy(() => import('@/pages/verifications/Verifi
 const VerificationListPage = lazy(() => import('@/pages/verifications/VerificationListPage'))
 const VerificationChecklistForm = lazy(() => import('@/pages/verifications/VerificationChecklistForm'))
 const MainLayout = lazy(() => import('@/shared/components/layout/MainLayout').then(m => ({ default: m.MainLayout })))
+const SettingsPage = lazy(() => import('@/features/settings/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 
 export const routeConfigs: RouteConfig[] = [
   {
@@ -40,6 +41,7 @@ export const routeConfigs: RouteConfig[] = [
       { path: '/requirements/:requirementId/verification/create', element: VerificationChecklistForm, title: '创建验证清单', mode: 'create' },
       { path: '/requirements/:requirementId/verification/:checklistId', element: VerificationChecklistForm, title: '查看验证清单', mode: 'view' },
       { path: '/requirements/:requirementId/verification/:checklistId/edit', element: VerificationChecklistForm, title: '编辑验证清单', mode: 'edit' },
+      { path: '/settings', element: SettingsPage, title: '配置' },
     ],
   },
 ]

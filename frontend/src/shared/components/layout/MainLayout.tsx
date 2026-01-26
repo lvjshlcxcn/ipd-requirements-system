@@ -108,13 +108,13 @@ export function MainLayout({ children }: MainLayoutProps) {
     lockScreen(username)
   }, [lockScreen, user, userInfo])
 
-  // 会话超时管理（锁定模式：1分钟无活动自动锁定，3分钟强制登出作为安全兜底）
-  // 正式配置：1分钟锁定，提前10秒开始倒计时，3分钟登出作为安全兜底
+  // 会话超时管理（锁定模式：10分钟无活动自动锁定，30分钟强制登出作为安全兜底）
+  // 修改原因：AI 分析可能需要较长时间（30-60秒），需要延长超时时间避免分析过程中被锁定
   const { resetTimeout: resetSessionTimeout } = useSessionTimeout({
     mode: 'lock',
-    lockTimeoutMs: 1 * 60 * 1000, // 1 分钟锁定
-    timeoutMs: 3 * 60 * 1000, // 3 分钟登出（安全兜底）
-    warningSeconds: 10, // 提前 10 秒开始倒计时
+    lockTimeoutMs: 10 * 60 * 1000, // 10 分钟锁定（足够进行 AI 分析）
+    timeoutMs: 30 * 60 * 1000, // 30 分钟登出（安全兜底）
+    warningSeconds: 30, // 提前 30 秒开始倒计时
     debug: true, // 开启调试日志以诊断倒计时问题
     onLock: handleLock,
     onCountdown: handleLockCountdown,

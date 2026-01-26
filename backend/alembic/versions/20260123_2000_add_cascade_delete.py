@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'add_cascade_delete'
-down_revision: Union[str, None] = '20260123_1200_add_insight_number'
+revision: str = '20260123_2000_add_cascade_delete'
+down_revision: Union[str, None] = '20260123_1200'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

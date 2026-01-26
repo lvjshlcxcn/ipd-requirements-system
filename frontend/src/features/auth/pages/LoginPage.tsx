@@ -2,43 +2,28 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, Form, Input, Button, message } from 'antd'
 import { DashboardOutlined } from '@ant-design/icons'
-import api from '@/services/api'
-
-interface LoginResponse {
-  access_token: string
-  token_type: string
-  user: {
-    id: number
-    username: string
-    email: string
-    role: string
-  }
-}
+import { useAuthStore } from '@/stores/useAuthStore'
 
 export function LoginPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const { login } = useAuthStore()
 
   const onFinish = async (values: any) => {
     setLoading(true)
     try {
-      const response = await api.post<any>('/auth/login', {
-        username: values.username,
-        password: values.password,
-      })
+      console.log('[LoginPage] 开始登录:', values.username)
 
-      if (response?.data?.access_token) {
-        const loginData: LoginResponse = response.data
-        localStorage.setItem('access_token', loginData.access_token)
-        localStorage.setItem('user_info', JSON.stringify(loginData.user))
-        message.success('登录成功')
-        navigate('/dashboard')
-      } else {
-        message.error('登录失败')
-      }
+      // 使用 useAuthStore 的 login 方法
+      await login(values.username, values.password)
+
+      console.log('[LoginPage] 登录成功')
+
+      message.success('登录成功')
+      navigate('/dashboard')
     } catch (error: any) {
-      console.error('Login failed:', error)
-      message.error(error?.detail || '登录失败，请检查用户名和密码')
+      console.error('[LoginPage] 登录失败:', error)
+      message.error(error?.detail || error?.message || '登录失败，请检查用户名和密码')
     } finally {
       setLoading(false)
     }

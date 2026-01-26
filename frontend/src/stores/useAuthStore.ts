@@ -67,8 +67,12 @@ export const useAuthStore = create<AuthState>()(
       login: async (username: string, password: string) => {
         set({ isLoading: true })
         try {
+          console.log('[AuthStore] 开始登录流程')
           const response = await authService.login({ username, password })
+          console.log('[AuthStore] 登录响应:', response)
+
           const { access_token, user } = response.data
+          console.log('[AuthStore] 解析后:', { access_token, user })
 
           authService.setToken(access_token)
 
@@ -83,12 +87,15 @@ export const useAuthStore = create<AuthState>()(
             failedPasswordAttempts: 0,
           })
 
+          console.log('[AuthStore] Store 已更新，用户:', user)
+
           // 清除 localStorage 中的锁屏相关数据
           localStorage.removeItem('app_screen_locked')
           localStorage.removeItem('app_locked_username')
           localStorage.removeItem('app_locked_time')
           localStorage.removeItem('app_failed_attempts')
         } catch (error: unknown) {
+          console.error('[AuthStore] 登录失败:', error)
           set({ isLoading: false })
           throw error
         }
