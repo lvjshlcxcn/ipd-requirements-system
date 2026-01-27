@@ -6,6 +6,9 @@ describe('useSessionTimeout - Lock Mode', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.clearAllMocks()
+    // Mock window.location to avoid "Not implemented: navigation" error
+    delete (window as any).location
+    window.location = { href: 'http://localhost:3000' } as any
   })
 
   afterEach(() => {

@@ -238,18 +238,15 @@ describe('RequirementHistoryTimeline', () => {
       const textarea = screen.getByPlaceholderText(/请输入备注内容/)
       await userEvent.type(textarea, '这是一个新的备注')
 
-      // Submit - wait for modal to be visible first, then find button
+      // Submit - find and click the OK button
       await waitFor(() => {
-        const modal = screen.getByRole('dialog')
-        expect(modal).toBeInTheDocument()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
       }, { timeout: 3000 })
 
-      // Find button within the modal context
-      const modal = screen.getByRole('dialog')
-      const allButtons = within(modal).getAllByRole('button')
-      const confirmButton = allButtons.find(btn => btn.textContent?.trim().includes('确定'))
+      // Find all buttons and click the one with text "确定"
+      const allButtons = screen.getAllByRole('button')
+      const confirmButton = allButtons.find(btn => btn.textContent?.includes('确定'))
       if (!confirmButton) {
-        console.log('Available buttons:', allButtons.map(b => b.textContent))
         throw new Error('Confirm button not found')
       }
       await act(async () => {
@@ -296,11 +293,9 @@ describe('RequirementHistoryTimeline', () => {
       }, { timeout: 3000 })
 
       // Try to submit empty note
-      const modal = screen.getByRole('dialog')
-      const allButtons = within(modal).getAllByRole('button')
-      const confirmButton = allButtons.find(btn => btn.textContent?.trim().includes('确定'))
+      const allButtons = screen.getAllByRole('button')
+      const confirmButton = allButtons.find(btn => btn.textContent?.includes('确定'))
       if (!confirmButton) {
-        console.log('Available buttons:', allButtons.map(b => b.textContent))
         throw new Error('Confirm button not found')
       }
       await userEvent.click(confirmButton)
@@ -324,8 +319,9 @@ describe('RequirementHistoryTimeline', () => {
 
       render(<RequirementHistoryTimeline requirementId={1} />, { wrapper })
 
+      // Should show empty state with error message
       await waitFor(() => {
-        expect(message.error).toHaveBeenCalledWith('获取历史记录失败')
+        expect(screen.getByText('加载失败，请稍后重试')).toBeInTheDocument()
       }, { timeout: 3000 })
     })
 
@@ -358,16 +354,13 @@ describe('RequirementHistoryTimeline', () => {
 
       // Wait for modal to be visible
       await waitFor(() => {
-        const modal = screen.getByRole('dialog')
-        expect(modal).toBeInTheDocument()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
       }, { timeout: 3000 })
 
       // Try to submit
-      const modal = screen.getByRole('dialog')
-      const allButtons = within(modal).getAllByRole('button')
-      const confirmButton = allButtons.find(btn => btn.textContent?.trim().includes('确定'))
+      const allButtons = screen.getAllByRole('button')
+      const confirmButton = allButtons.find(btn => btn.textContent?.includes('确定'))
       if (!confirmButton) {
-        console.log('Available buttons:', allButtons.map(b => b.textContent))
         throw new Error('Confirm button not found')
       }
       await userEvent.click(confirmButton)

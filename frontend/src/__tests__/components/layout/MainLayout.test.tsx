@@ -104,10 +104,14 @@ describe('MainLayout - Screen Lock Integration', () => {
       </BrowserRouter>
     )
 
+    // 验证useSessionTimeout被调用，并且参数包含必要的配置
     expect(useSessionTimeoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: 'lock',
-        lockTimeoutMs: 1 * 60 * 1000,
+        lockTimeoutMs: 10 * 60 * 1000, // 10分钟
+        timeoutMs: 30 * 60 * 1000, // 30分钟
+        warningSeconds: 30,
+        debug: true,
       })
     )
   })

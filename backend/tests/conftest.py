@@ -2,6 +2,7 @@
 
 import os
 import sys
+import random
 from typing import Generator
 import pytest
 import asyncio
@@ -9,6 +10,7 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -17,6 +19,9 @@ from app.main import app
 from app.db.base import Base
 from app.models.user import User
 from app.models.tenant import Tenant
+from app.models.requirement import Requirement
+from app.models.insight import InsightAnalysis
+from app.models.prompt_template import PromptTemplate
 from app.core.security import get_password_hash, create_access_token
 from app.config import get_settings
 
@@ -56,7 +61,7 @@ def db_engine():
 def db_session(db_engine) -> Generator[Session, None, None]:
     """Create test database session."""
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
-    
+
     session = SessionLocal()
     try:
         yield session
@@ -65,12 +70,47 @@ def db_session(db_engine) -> Generator[Session, None, None]:
 
 
 @pytest.fixture(scope="function")
-def client(db_session: Session, test_tenant: Tenant):
-    """Create test HTTP client wrapper."""
-    
+async def async_db_session() -> Generator[AsyncSession, None, None]:
+    """Create async test database session."""
+    # Create async engine
+    async_engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+    )
+
+    # Replace JSONB with JSON for SQLite compatibility
+    from sqlalchemy import JSON
+    for table in Base.metadata.tables.values():
+        for column in table.columns:
+            if str(column.type) == 'JSONB':
+                column.type = JSON()
+
+    # Create all tables
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    # Create session
+    async_session_maker = async_sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=async_engine,
+        expire_on_commit=False,
+    )
+
+    async with async_session_maker() as session:
+        yield session
+
+    # Clean up
+    await async_engine.dispose()
+
+
+@pytest.fixture(scope="function")
+async def client(async_db_session: AsyncSession, test_tenant: Tenant):
+    """Create test HTTP client wrapper with async database support."""
+
     # Dependency override for database session
-    def override_get_db():
-        yield db_session
+    async def override_get_db():
+        yield async_db_session
 
     from app.db.session import get_db
     app.dependency_overrides[get_db] = override_get_db
@@ -78,64 +118,63 @@ def client(db_session: Session, test_tenant: Tenant):
     # Create async client
     transport = ASGITransport(app=app)
     test_client = AsyncClient(transport=transport, base_url="http://test")
-    
-    # Wrapper class to run async methods synchronously
-    class SyncClientWrapper:
-        def __init__(self, async_client, tenant_id):
+
+    # Wrapper class to handle async operations
+    class AsyncClientWrapper:
+        def __init__(self, async_client, tenant_id, session):
             self._async_client = async_client
             self.tenant_id = tenant_id
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
-        
+            self._session = session
+
         def _add_tenant_header(self, kwargs):
             """Add X-Tenant-ID header to request."""
-            headers = kwargs.get('headers', {}).copy()
+            headers = kwargs.get('headers', {}).copy() if kwargs.get('headers') else {}
             headers['X-Tenant-ID'] = str(self.tenant_id)
             kwargs['headers'] = headers
             return kwargs
-        
+
+        async def _request(self, method, *args, **kwargs):
+            """Execute async request."""
+            kwargs = self._add_tenant_header(kwargs)
+            method_func = getattr(self._async_client, method)
+            return await method_func(*args, **kwargs)
+
         def post(self, *args, **kwargs):
-            kwargs = self._add_tenant_header(kwargs)
-            return self.loop.run_until_complete(
-                self._async_client.post(*args, **kwargs)
+            return asyncio.get_event_loop().run_until_complete(
+                self._request('post', *args, **kwargs)
             )
-        
+
         def get(self, *args, **kwargs):
-            kwargs = self._add_tenant_header(kwargs)
-            return self.loop.run_until_complete(
-                self._async_client.get(*args, **kwargs)
+            return asyncio.get_event_loop().run_until_complete(
+                self._request('get', *args, **kwargs)
             )
-        
+
         def put(self, *args, **kwargs):
-            kwargs = self._add_tenant_header(kwargs)
-            return self.loop.run_until_complete(
-                self._async_client.put(*args, **kwargs)
+            return asyncio.get_event_loop().run_until_complete(
+                self._request('put', *args, **kwargs)
             )
-        
+
         def delete(self, *args, **kwargs):
-            kwargs = self._add_tenant_header(kwargs)
-            return self.loop.run_until_complete(
-                self._async_client.delete(*args, **kwargs)
+            return asyncio.get_event_loop().run_until_complete(
+                self._request('delete', *args, **kwargs)
             )
-        
+
         def patch(self, *args, **kwargs):
-            kwargs = self._add_tenant_header(kwargs)
-            return self.loop.run_until_complete(
-                self._async_client.patch(*args, **kwargs)
+            return asyncio.get_event_loop().run_until_complete(
+                self._request('patch', *args, **kwargs)
             )
-        
-        def close(self):
-            self.loop.run_until_complete(self._async_client.aclose())
-            self.loop.close()
-    
-    wrapper = SyncClientWrapper(test_client, test_tenant.id)
-    
+
+        async def aclose(self):
+            await self._async_client.aclose()
+
+    wrapper = AsyncClientWrapper(test_client, test_tenant.id, async_db_session)
+
     yield wrapper
-    
+
     app.dependency_overrides.clear()
-    
+
     # Clean up
-    wrapper.close()
+    await wrapper.aclose()
 
 
 @pytest.fixture(scope="function")
@@ -215,3 +254,170 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "integration: mark test as integration test"
     )
+    config.addinivalue_line(
+        "markers", "unit: mark test as unit test"
+    )
+    config.addinivalue_line(
+        "markers", "slow: mark test as slow running"
+    )
+
+
+# ============ 业务对象 Fixtures ============
+
+@pytest.fixture(scope="function")
+def test_requirement(db_session: Session, test_user: User, test_tenant: Tenant) -> Requirement:
+    """Create test requirement in database."""
+    requirement = Requirement(
+        requirement_no="REQ-001",
+        title="Test Requirement",
+        description="Test description",
+        source_channel="customer",
+        status="collected",
+        tenant_id=test_tenant.id,
+        created_by=test_user.id,
+    )
+    db_session.add(requirement)
+    db_session.commit()
+    db_session.refresh(requirement)
+    return requirement
+
+
+@pytest.fixture(scope="function")
+def test_insight(db_session: Session, test_user: User, test_tenant: Tenant) -> InsightAnalysis:
+    """Create test insight analysis."""
+    insight = InsightAnalysis(
+        insight_number="AI-001",
+        input_text="Test customer interview",
+        text_length=50,
+        input_source="manual",
+        analysis_mode="full",
+        analysis_result={
+            "q1_who": "Product Manager",
+            "q2_why": "Need to manage requirements",
+            "q3_what_problem": "Excel management is chaotic",
+            "q4_current_solution": "Using Excel spreadsheets",
+            "q5_current_issues": "Hard to track changes",
+            "q6_ideal_solution": "A dedicated requirement management system",
+            "q7_priority": "high",
+            "q8_frequency": "daily",
+            "q9_impact_scope": "Entire product team",
+            "q10_value": "Improve efficiency by 50%"
+        },
+        tenant_id=test_tenant.id,
+        created_by=test_user.id,
+    )
+    db_session.add(insight)
+    db_session.commit()
+    db_session.refresh(insight)
+    return insight
+
+
+@pytest.fixture(scope="function")
+def test_prompt_template(db_session: Session, test_user: User, test_tenant: Tenant) -> PromptTemplate:
+    """Create test prompt template."""
+    template = PromptTemplate(
+        template_key="test_template",
+        version="v1.0",
+        is_active=True,
+        name="Test Template",
+        description="A test template for unit testing",
+        content="Test prompt content with {variable}",
+        variables='["variable"]',
+        tenant_id=test_tenant.id,
+        created_by=test_user.id,
+    )
+    db_session.add(template)
+    db_session.commit()
+    db_session.refresh(template)
+    return template
+
+
+# ============ 角色特定 Fixtures ============
+
+@pytest.fixture(scope="function")
+def test_admin_user(db_session: Session, test_tenant: Tenant) -> User:
+    """Create admin user."""
+    user = User(
+        username="adminuser",
+        email="admin@example.com",
+        hashed_password=get_password_hash("adminpass123"),
+        full_name="Admin User",
+        role="admin",
+        department="Engineering",
+        is_active=True,
+        tenant_id=test_tenant.id,
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture(scope="function")
+def test_product_manager(db_session: Session, test_tenant: Tenant) -> User:
+    """Create product manager user."""
+    user = User(
+        username="productmanager",
+        email="pm@example.com",
+        hashed_password=get_password_hash("pmpass123"),
+        full_name="Product Manager",
+        role="product_manager",
+        department="Product",
+        is_active=True,
+        tenant_id=test_tenant.id,
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+# ============ 工厂模式 Fixtures ============
+
+@pytest.fixture
+def requirement_factory(db_session: Session, test_user: User, test_tenant: Tenant):
+    """Factory for creating requirements with flexible parameters."""
+    def _create(**kwargs):
+        data = {
+            "requirement_no": f"REQ-{random.randint(1000, 9999)}",
+            "title": "Auto Requirement",
+            "description": "Auto generated requirement",
+            "source_channel": "customer",
+            "status": "collected",
+            "tenant_id": test_tenant.id,
+            "created_by": test_user.id,
+            **kwargs
+        }
+        req = Requirement(**data)
+        db_session.add(req)
+        db_session.commit()
+        db_session.refresh(req)
+        return req
+    return _create
+
+
+@pytest.fixture
+def insight_factory(db_session: Session, test_user: User, test_tenant: Tenant):
+    """Factory for creating insights with flexible parameters."""
+    def _create(**kwargs):
+        data = {
+            "insight_number": f"AI-{random.randint(1000, 9999)}",
+            "input_text": "Auto generated insight text",
+            "text_length": 50,
+            "input_source": "manual",
+            "analysis_mode": "full",
+            "analysis_result": {
+                "q1_who": "Test User",
+                "q2_why": "Test reason",
+                "q3_what_problem": "Test problem",
+            },
+            "tenant_id": test_tenant.id,
+            "created_by": test_user.id,
+            **kwargs
+        }
+        insight = InsightAnalysis(**data)
+        db_session.add(insight)
+        db_session.commit()
+        db_session.refresh(insight)
+        return insight
+    return _create

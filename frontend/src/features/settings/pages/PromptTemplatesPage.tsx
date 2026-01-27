@@ -474,6 +474,9 @@ function TemplateList({
         loading={loading}
         rowKey="id"
         pagination={{ pageSize: 10 }}
+        locale={{
+          emptyText: '暂无数据'
+        }}
       />
     </>
   )

@@ -3,25 +3,19 @@ import { render, screen, waitFor } from '@/test/utils/render'
 import userEvent from '@testing-library/user-event'
 
 // Mock react-router-dom
-const mockNavigate = vi.fn()
 vi.mock('react-router-dom', () => ({
-  useNavigate: () => mockNavigate,
+  useNavigate: () => vi.fn(),
 }))
 
-// Mock RTM service - must be before import
-const mockGetTraceabilityMatrix = vi.fn()
-const mockGetRequirementTraceability = vi.fn()
-const mockCreateLink = vi.fn()
-const mockDeleteLink = vi.fn()
-const mockExportMatrix = vi.fn()
-
+// Mock RTM service - 使用工厂函数避免变量提升问题
 vi.mock('@/services/rtm.service', () => ({
   rtmService: {
-    getTraceabilityMatrix: mockGetTraceabilityMatrix,
-    getRequirementTraceability: mockGetRequirementTraceability,
-    createLink: mockCreateLink,
-    deleteLink: mockDeleteLink,
-    exportMatrix: mockExportMatrix,
+    getTraceabilityMatrix: vi.fn(),
+    getRequirementTraceability: vi.fn(),
+    createLink: vi.fn(),
+    deleteLink: vi.fn(),
+    updateLink: vi.fn(),
+    exportMatrix: vi.fn(),
   },
   TraceabilityMatrix: [],
 }))
@@ -43,15 +37,6 @@ vi.mock('antd', async () => {
 import { RTMPage } from '@/pages/rtm/RTMPage'
 import { rtmService } from '@/services/rtm.service'
 import { message } from 'antd'
-
-// Type assertion for mocked service
-const mockedRtmService = rtmService as unknown as {
-  getTraceabilityMatrix: typeof mockGetTraceabilityMatrix
-  getRequirementTraceability: typeof mockGetRequirementTraceability
-  createLink: typeof mockCreateLink
-  deleteLink: typeof mockDeleteLink
-  exportMatrix: typeof mockExportMatrix
-}
 
 // Test data
 const mockMatrixData = [
@@ -85,7 +70,9 @@ const mockApiResponse = {
 describe('RTMPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockedRtmService.getTraceabilityMatrix.mockResolvedValue(mockApiResponse)
+    // 直接mock service方法
+    vi.mocked(rtmService.getTraceabilityMatrix).mockResolvedValue(mockApiResponse)
+    vi.mocked(rtmService.exportMatrix).mockResolvedValue({ data: new Blob() })
     ;(globalThis as any).URL.createObjectURL = vi.fn(() => 'mock-url')
     ;(globalThis as any).URL.revokeObjectURL = vi.fn()
   })
@@ -143,7 +130,7 @@ describe('RTMPage', () => {
 
     it('应该调用导出Excel API', async () => {
       const mockBlob = new Blob(['test'], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-      mockedRtmService.exportMatrix.mockResolvedValue({ data: mockBlob })
+      vi.mocked(rtmService.exportMatrix).mockResolvedValue({ data: mockBlob })
 
       render(<RTMPage />)
 
@@ -157,7 +144,7 @@ describe('RTMPage', () => {
 
       // 验证导出API被调用
       await waitFor(() => {
-        expect(mockedRtmService.exportMatrix).toHaveBeenCalledWith('excel')
+        expect(vi.mocked(rtmService.exportMatrix)).toHaveBeenCalledWith('excel')
       })
     })
   })
@@ -202,7 +189,7 @@ describe('RTMPage', () => {
       // Mock console.error to avoid noise
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-      mockedRtmService.getTraceabilityMatrix.mockRejectedValue(new Error('Network error'))
+      vi.mocked(rtmService.getTraceabilityMatrix).mockRejectedValue(new Error('Network error'))
 
       render(<RTMPage />)
 
@@ -215,7 +202,7 @@ describe('RTMPage', () => {
     })
 
     it('应该处理空数据', async () => {
-      mockedRtmService.getTraceabilityMatrix.mockResolvedValue({ data: [] })
+      vi.mocked(rtmService.getTraceabilityMatrix).mockResolvedValue({ data: [] })
 
       render(<RTMPage />)
 
