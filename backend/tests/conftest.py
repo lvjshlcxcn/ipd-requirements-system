@@ -105,8 +105,89 @@ async def async_db_session() -> Generator[AsyncSession, None, None]:
 
 
 @pytest.fixture(scope="function")
-async def client(async_db_session: AsyncSession, test_tenant: Tenant):
-    """Create test HTTP client wrapper with async database support."""
+def client(db_session: Session, test_tenant_sync: Tenant):
+    """Create test HTTP client wrapper for integration tests (uses sync DB)."""
+
+    # Dependency override for database session
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+
+    from app.db.session import get_db
+    app.dependency_overrides[get_db] = override_get_db
+
+    # Create async client
+    transport = ASGITransport(app=app)
+    test_client = AsyncClient(transport=transport, base_url="http://test")
+
+    # Wrapper class to run async methods synchronously
+    class SyncClientWrapper:
+        def __init__(self, async_client, tenant_id):
+            self._async_client = async_client
+            self.tenant_id = tenant_id
+            # Use current event loop instead of creating new one
+            try:
+                self.loop = asyncio.get_event_loop()
+            except RuntimeError:
+                self.loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(self.loop)
+
+        def _add_tenant_header(self, kwargs):
+            """Add X-Tenant-ID header to request."""
+            headers = kwargs.get('headers', {}).copy() if kwargs.get('headers') else {}
+            headers['X-Tenant-ID'] = str(self.tenant_id)
+            kwargs['headers'] = headers
+            return kwargs
+
+        def post(self, *args, **kwargs):
+            kwargs = self._add_tenant_header(kwargs)
+            return self.loop.run_until_complete(
+                self._async_client.post(*args, **kwargs)
+            )
+
+        def get(self, *args, **kwargs):
+            kwargs = self._add_tenant_header(kwargs)
+            return self.loop.run_until_complete(
+                self._async_client.get(*args, **kwargs)
+            )
+
+        def put(self, *args, **kwargs):
+            kwargs = self._add_tenant_header(kwargs)
+            return self.loop.run_until_complete(
+                self._async_client.put(*args, **kwargs)
+            )
+
+        def delete(self, *args, **kwargs):
+            kwargs = self._add_tenant_header(kwargs)
+            return self.loop.run_until_complete(
+                self._async_client.delete(*args, **kwargs)
+            )
+
+        def patch(self, *args, **kwargs):
+            kwargs = self._add_tenant_header(kwargs)
+            return self.loop.run_until_complete(
+                self._async_client.patch(*args, **kwargs)
+            )
+
+        def close(self):
+            self.loop.run_until_complete(self._async_client.aclose())
+
+    wrapper = SyncClientWrapper(test_client, test_tenant_sync.id)
+
+    yield wrapper
+
+    app.dependency_overrides.clear()
+
+    # Clean up
+    wrapper.close()
+
+
+# Async version for tests that need async DB
+@pytest.fixture(scope="function")
+async def async_client(async_db_session: AsyncSession, test_tenant: Tenant):
+    """Create async test HTTP client wrapper."""
 
     # Dependency override for database session
     async def override_get_db():
@@ -121,10 +202,9 @@ async def client(async_db_session: AsyncSession, test_tenant: Tenant):
 
     # Wrapper class to handle async operations
     class AsyncClientWrapper:
-        def __init__(self, async_client, tenant_id, session):
+        def __init__(self, async_client, tenant_id):
             self._async_client = async_client
             self.tenant_id = tenant_id
-            self._session = session
 
         def _add_tenant_header(self, kwargs):
             """Add X-Tenant-ID header to request."""
@@ -167,7 +247,7 @@ async def client(async_db_session: AsyncSession, test_tenant: Tenant):
         async def aclose(self):
             await self._async_client.aclose()
 
-    wrapper = AsyncClientWrapper(test_client, test_tenant.id, async_db_session)
+    wrapper = AsyncClientWrapper(test_client, test_tenant.id)
 
     yield wrapper
 
@@ -178,8 +258,23 @@ async def client(async_db_session: AsyncSession, test_tenant: Tenant):
 
 
 @pytest.fixture(scope="function")
-def test_tenant(db_session: Session) -> Tenant:
+async def test_tenant(async_db_session: AsyncSession) -> Tenant:
     """Create test tenant."""
+    tenant = Tenant(
+        name="Test Tenant",
+        code="test_tenant",
+        is_active=True,
+    )
+    async_db_session.add(tenant)
+    await async_db_session.commit()
+    await async_db_session.refresh(tenant)
+    return tenant
+
+
+# Keep sync version for backward compatibility
+@pytest.fixture(scope="function")
+def test_tenant_sync(db_session: Session) -> Tenant:
+    """Create test tenant (sync version for backward compatibility)."""
     tenant = Tenant(
         name="Test Tenant",
         code="test_tenant",
@@ -192,7 +287,7 @@ def test_tenant(db_session: Session) -> Tenant:
 
 
 @pytest.fixture(scope="function")
-def test_user(db_session: Session, test_tenant: Tenant) -> User:
+async def test_user(async_db_session: AsyncSession, test_tenant: Tenant) -> User:
     """Create test user."""
     user = User(
         username="testuser",
@@ -204,6 +299,26 @@ def test_user(db_session: Session, test_tenant: Tenant) -> User:
         is_active=True,
         tenant_id=test_tenant.id,
     )
+    async_db_session.add(user)
+    await async_db_session.commit()
+    await async_db_session.refresh(user)
+    return user
+
+
+# Keep sync version for backward compatibility
+@pytest.fixture(scope="function")
+def test_user_sync(db_session: Session, test_tenant_sync: Tenant) -> User:
+    """Create test user (sync version for backward compatibility)."""
+    user = User(
+        username="testuser",
+        email="test@example.com",
+        hashed_password=get_password_hash("testpass123"),
+        full_name="Test User",
+        role="admin",
+        department="Engineering",
+        is_active=True,
+        tenant_id=test_tenant_sync.id,
+    )
     db_session.add(user)
     db_session.commit()
     db_session.refresh(user)
@@ -211,12 +326,12 @@ def test_user(db_session: Session, test_tenant: Tenant) -> User:
 
 
 @pytest.fixture(scope="function")
-def auth_headers(test_user: User) -> dict:
+async def auth_headers(test_user: User) -> dict:
     """Get authentication headers."""
     # Generate token directly instead of making HTTP request
     token_data = {"sub": str(test_user.id), "username": test_user.username}
     access_token = create_access_token(token_data)
-    
+
     return {"Authorization": f"Bearer {access_token}"}
 
 
@@ -265,7 +380,7 @@ def pytest_configure(config):
 # ============ 业务对象 Fixtures ============
 
 @pytest.fixture(scope="function")
-def test_requirement(db_session: Session, test_user: User, test_tenant: Tenant) -> Requirement:
+async def test_requirement(async_db_session: AsyncSession, test_user: User, test_tenant: Tenant) -> Requirement:
     """Create test requirement in database."""
     requirement = Requirement(
         requirement_no="REQ-001",
@@ -276,14 +391,14 @@ def test_requirement(db_session: Session, test_user: User, test_tenant: Tenant) 
         tenant_id=test_tenant.id,
         created_by=test_user.id,
     )
-    db_session.add(requirement)
-    db_session.commit()
-    db_session.refresh(requirement)
+    async_db_session.add(requirement)
+    await async_db_session.commit()
+    await async_db_session.refresh(requirement)
     return requirement
 
 
 @pytest.fixture(scope="function")
-def test_insight(db_session: Session, test_user: User, test_tenant: Tenant) -> InsightAnalysis:
+async def test_insight(async_db_session: AsyncSession, test_user: User, test_tenant: Tenant) -> InsightAnalysis:
     """Create test insight analysis."""
     insight = InsightAnalysis(
         insight_number="AI-001",
@@ -306,14 +421,14 @@ def test_insight(db_session: Session, test_user: User, test_tenant: Tenant) -> I
         tenant_id=test_tenant.id,
         created_by=test_user.id,
     )
-    db_session.add(insight)
-    db_session.commit()
-    db_session.refresh(insight)
+    async_db_session.add(insight)
+    await async_db_session.commit()
+    await async_db_session.refresh(insight)
     return insight
 
 
 @pytest.fixture(scope="function")
-def test_prompt_template(db_session: Session, test_user: User, test_tenant: Tenant) -> PromptTemplate:
+async def test_prompt_template(async_db_session: AsyncSession, test_user: User, test_tenant: Tenant) -> PromptTemplate:
     """Create test prompt template."""
     template = PromptTemplate(
         template_key="test_template",
@@ -326,9 +441,9 @@ def test_prompt_template(db_session: Session, test_user: User, test_tenant: Tena
         tenant_id=test_tenant.id,
         created_by=test_user.id,
     )
-    db_session.add(template)
-    db_session.commit()
-    db_session.refresh(template)
+    async_db_session.add(template)
+    await async_db_session.commit()
+    await async_db_session.refresh(template)
     return template
 
 

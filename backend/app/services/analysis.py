@@ -83,19 +83,12 @@ class AnalysisService:
         """
         # INVEST score (sum of boolean values)
         invest_score = (
-            1
-            if analysis_data.invest.independent
-            else 0
-            if analysis_data.invest.negotiable
-            else 0
-            if analysis_data.invest.valuable
-            else 0
-            if analysis_data.invest.estimable
-            else 0
-            if analysis_data.invest.small
-            else 0
-            if analysis_data.invest.testable
-            else 0
+            (1 if analysis_data.invest.independent else 0) +
+            (1 if analysis_data.invest.negotiable else 0) +
+            (1 if analysis_data.invest.valuable else 0) +
+            (1 if analysis_data.invest.estimable else 0) +
+            (1 if analysis_data.invest.small else 0) +
+            (1 if analysis_data.invest.testable else 0)
         ) / 6 * 100
 
         # MoSCoW score
@@ -105,8 +98,7 @@ class AnalysisService:
             "could_have": 50,
             "wont_have": 25,
         }
-        moscow_value = analysis_data.moscow.priority.replace("_", "_have")
-        moscow_score = moscow_scores.get(moscow_value, 0)
+        moscow_score = moscow_scores.get(analysis_data.moscow.priority, 0)
 
         # Kano score
         kano_scores = {

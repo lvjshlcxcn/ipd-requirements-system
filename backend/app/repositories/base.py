@@ -105,6 +105,8 @@ class BaseRepository(Generic[ModelType]):
         Returns:
             Updated model instance or None
         """
+        from datetime import datetime, timezone
+
         db_obj = await self.get_by_id(id)
         if db_obj is None:
             return None
@@ -112,6 +114,10 @@ class BaseRepository(Generic[ModelType]):
         for field, value in kwargs.items():
             if hasattr(db_obj, field):
                 setattr(db_obj, field, value)
+
+        # Manually update updated_at if the model has this field
+        if hasattr(db_obj, "updated_at"):
+            setattr(db_obj, "updated_at", datetime.now(timezone.utc))
 
         await self.session.flush()
         await self.session.refresh(db_obj)

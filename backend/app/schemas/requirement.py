@@ -116,7 +116,7 @@ class RequirementResponse(BaseModel):
 class RequirementListItem(BaseModel):
     """Schema for requirement list item."""
 
-    key: str = Field(..., alias="id")
+    key: int = Field(..., alias="id")
     no: str = Field(..., alias="requirement_no")
     title: str
     description: str
