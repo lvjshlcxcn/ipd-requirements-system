@@ -19,6 +19,7 @@ import {
   SaveOutlined,
   BarChartOutlined,
 } from '@ant-design/icons'
+import appealsService from '@/services/appeals.service'
 
 // APPEALS 8个维度
 const appealsDimensions = [
@@ -213,18 +214,60 @@ function AppealsAnalysisPage() {
   const navigate = useNavigate()
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
+  const [pageLoading, setPageLoading] = useState(true)
   const [scores, setScores] = useState<number[]>(new Array(8).fill(5))
   const [totalScore, setTotalScore] = useState(0)
 
-  // 初始化默认值
+  // 加载已有数据
   useEffect(() => {
-    const initialValues: Partial<AppealsFormData> = {}
-    appealsDimensions.forEach((dim) => {
-      initialValues[`${dim.key}_score` as keyof AppealsFormData] = 5 as any
-      initialValues[`${dim.key}_weight` as keyof AppealsFormData] = 0.5 as any
-    })
-    form.setFieldsValue(initialValues)
-  }, [form])
+    const loadData = async () => {
+      if (!id) return
+
+      try {
+        const data = await appealsService.getAnalysis(Number(id))
+
+        // 转换后端格式到表单格式
+        const formValues: Partial<AppealsFormData> = {}
+        const newScores: number[] = []
+
+        appealsDimensions.forEach((dim, index) => {
+          const dimension = data.dimensions[dim.key]
+          if (dimension) {
+            formValues[`${dim.key}_score` as keyof AppealsFormData] = dimension.score
+            formValues[`${dim.key}_weight` as keyof AppealsFormData] = dimension.weight
+            formValues[`${dim.key}_comment` as keyof AppealsFormData] = dimension.comment || ''
+            newScores.push(dimension.score)
+          } else {
+            formValues[`${dim.key}_score` as keyof AppealsFormData] = 5
+            formValues[`${dim.key}_weight` as keyof AppealsFormData] = 0.5
+            formValues[`${dim.key}_comment` as keyof AppealsFormData] = ''
+            newScores.push(5)
+          }
+        })
+
+        form.setFieldsValue(formValues)
+        setScores(newScores)
+        setTotalScore(data.total_weighted_score)
+      } catch (error: any) {
+        // 如果是404错误，说明还没有保存过数据，使用默认值
+        if (error?.response?.status === 404) {
+          const initialValues: Partial<AppealsFormData> = {}
+          appealsDimensions.forEach((dim) => {
+            initialValues[`${dim.key}_score` as keyof AppealsFormData] = 5 as any
+            initialValues[`${dim.key}_weight` as keyof AppealsFormData] = 0.5 as any
+            initialValues[`${dim.key}_comment` as keyof AppealsFormData] = ''
+          })
+          form.setFieldsValue(initialValues)
+        } else {
+          message.error('加载APPEALS分析失败')
+        }
+      } finally {
+        setPageLoading(false)
+      }
+    }
+
+    loadData()
+  }, [id, form])
 
   // 计算总分
   const calculateTotal = (values: AppealsFormData) => {
@@ -249,13 +292,58 @@ function AppealsAnalysisPage() {
   }
 
   const onFinish = async (values: AppealsFormData) => {
+    if (!id) return
+
     setLoading(true)
     try {
-      console.log('Save APPEALS analysis:', id, values)
-      // TODO: 调用API保存分析结果
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // 转换表单格式到后端格式
+      const analysisData = {
+        price: {
+          score: values.price_score,
+          weight: values.price_weight,
+          comment: values.price_comment,
+        },
+        availability: {
+          score: values.availability_score,
+          weight: values.availability_weight,
+          comment: values.availability_comment,
+        },
+        packaging: {
+          score: values.packaging_score,
+          weight: values.packaging_weight,
+          comment: values.packaging_comment,
+        },
+        performance: {
+          score: values.performance_score,
+          weight: values.performance_weight,
+          comment: values.performance_comment,
+        },
+        ease_of_use: {
+          score: values.ease_of_use_score,
+          weight: values.ease_of_use_weight,
+          comment: values.ease_of_use_comment,
+        },
+        assurance: {
+          score: values.assurance_score,
+          weight: values.assurance_weight,
+          comment: values.assurance_comment,
+        },
+        lifecycle_cost: {
+          score: values.lifecycle_cost_score,
+          weight: values.lifecycle_cost_weight,
+          comment: values.lifecycle_cost_comment,
+        },
+        social_acceptance: {
+          score: values.social_acceptance_score,
+          weight: values.social_acceptance_weight,
+          comment: values.social_acceptance_comment,
+        },
+      }
+
+      await appealsService.saveAnalysis(Number(id), analysisData)
       message.success('APPEALS分析保存成功')
     } catch (error) {
+      console.error('Save APPEALS analysis failed:', error)
       message.error('保存失败')
     } finally {
       setLoading(false)
@@ -271,6 +359,7 @@ function AppealsAnalysisPage() {
             返回
           </Button>
         }
+        loading={pageLoading}
       >
         <Row gutter={24}>
           {/* 左侧：评分表单 */}

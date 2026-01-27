@@ -14,7 +14,7 @@ from app.schemas.appeals import (
 router = APIRouter(prefix="/requirements/{requirement_id}/appeals", tags=["APPEALS"])
 
 
-@router.get("", response_model=APPEALSAnalysisResponse)
+@router.get("")
 async def get_appeals_analysis(
     requirement_id: int,
     db: Session = Depends(get_db),
@@ -40,10 +40,16 @@ async def get_appeals_analysis(
             detail="APPEALS analysis not found",
         )
 
-    return analysis
+    # 使用标准响应格式
+    analysis_response = APPEALSAnalysisResponse.model_validate(analysis)
+    return {
+        "success": True,
+        "message": "获取APPEALS分析成功",
+        "data": analysis_response.model_dump()
+    }
 
 
-@router.post("", response_model=APPEALSAnalysisResponse)
+@router.post("")
 async def save_appeals_analysis(
     requirement_id: int,
     analysis_data: APPEALSAnalysisCreate,
@@ -73,10 +79,16 @@ async def save_appeals_analysis(
             detail="Requirement not found",
         )
 
-    return analysis
+    # 使用标准响应格式
+    analysis_response = APPEALSAnalysisResponse.model_validate(analysis)
+    return {
+        "success": True,
+        "message": "APPEALS分析保存成功",
+        "data": analysis_response.model_dump()
+    }
 
 
-@router.get("/summary", response_model=APPEALSSummary)
+@router.get("/summary")
 async def get_appeals_summary(
     db: Session = Depends(get_db),
 ):

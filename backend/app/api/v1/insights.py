@@ -415,6 +415,113 @@ async def update_insight(
     return insight
 
 
+@router.patch("/{insight_id}", response_model=InsightResponse)
+async def patch_insight(
+    insight_id: int,
+    status: Optional[str] = None,
+    current_user: Optional[User] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """部分更新洞察（如状态）"""
+    # 确保用户已认证
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="未认证，请先登录",
+        )
+
+    from sqlalchemy import select
+
+    result = await db.execute(
+        select(InsightAnalysis).where(
+            InsightAnalysis.id == insight_id,
+            InsightAnalysis.tenant_id == current_user.tenant_id
+        )
+    )
+    insight = result.scalar_one_or_none()
+
+    if not insight:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="洞察分析不存在"
+        )
+
+    # 更新状态
+    if status is not None:
+        insight.status = status
+        insight.updated_at = datetime.utcnow()
+
+    await db.commit()
+    await db.refresh(insight)
+    return insight
+
+
+@router.post("/{insight_id}/convert-to-requirement", response_model=dict)
+async def convert_to_requirement(
+    insight_id: int,
+    current_user: Optional[User] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """将洞察转换为需求"""
+    # 确保用户已认证
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="未认证，请先登录",
+        )
+
+    from sqlalchemy import select
+    from app.models.requirement import Requirement
+
+    # 获取洞察
+    result = await db.execute(
+        select(InsightAnalysis).where(
+            InsightAnalysis.id == insight_id,
+            InsightAnalysis.tenant_id == current_user.tenant_id
+        )
+    )
+    insight = result.scalar_one_or_none()
+
+    if not insight:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="洞察分析不存在"
+        )
+
+    # 生成需求编号
+    requirement_no = await generate_requirement_number(db, current_user.tenant_id)
+
+    # 创建需求
+    requirement = Requirement(
+        requirement_no=requirement_no,
+        title=f"洞察-{insight.insight_number}",
+        description=insight.input_text,
+        source_channel="insight",
+        status="collected",
+        tenant_id=current_user.tenant_id,
+        created_by=current_user.id,
+    )
+
+    db.add(requirement)
+    await db.commit()
+    await db.refresh(requirement)
+
+    # 关联洞察到需求
+    insight.linked_requirement_id = requirement.id
+    insight.status = "converted"
+    await db.commit()
+
+    return {
+        "success": True,
+        "data": {
+            "requirement_id": requirement.id,
+            "requirement_no": requirement.requirement_no,
+            "insight_id": insight.id
+        },
+        "message": "成功将洞察转换为需求"
+    }
+
+
 @router.post("/{insight_id}/link-requirement")
 async def link_to_requirement(
     insight_id: int,

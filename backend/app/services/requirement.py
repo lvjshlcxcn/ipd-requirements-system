@@ -162,13 +162,12 @@ class RequirementService:
             if existing_10q:
                 self.repo_10q.update(existing_10q, ten_q_data)
             else:
-                # Get tenant_id for creating 10q
-                tenant_id = get_current_tenant()
+                # Use requirement's tenant_id for creating 10q
                 self.repo_10q.create(
                     requirement_id=requirement_id,
                     answers=ten_q_data,
                     answered_by=updated_by,
-                    tenant_id=tenant_id,
+                    tenant_id=requirement.tenant_id,
                 )
 
         # Add updater info

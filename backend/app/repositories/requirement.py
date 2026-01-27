@@ -191,7 +191,7 @@ class RequirementRepository:
             Updated requirement
         """
         for key, value in updates.items():
-            if hasattr(requirement, key) and value is not None:
+            if hasattr(requirement, key):
                 setattr(requirement, key, value)
 
         requirement.updated_at = datetime.utcnow()

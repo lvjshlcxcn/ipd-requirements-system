@@ -3,16 +3,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.schemas.analysis import AnalysisCreate, AnalysisResponse, AnalysisSummary
 from app.services.analysis import AnalysisService
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_async_db, get_current_user
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/requirements/{requirement_id}/analysis", tags=["analysis"])
 
 
-@router.get("", response_model=AnalysisResponse)
+@router.get("")
 async def get_analysis(
     requirement_id: int,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(get_current_user),
 ):
     """Get analysis for a requirement.
@@ -32,14 +32,20 @@ async def get_analysis(
             detail="Requirement not found",
         )
 
-    return analysis
+    # 使用标准响应格式
+    analysis_response = AnalysisResponse.model_validate(analysis)
+    return {
+        "success": True,
+        "message": "获取分析成功",
+        "data": analysis_response.model_dump()
+    }
 
 
-@router.post("", response_model=AnalysisResponse)
+@router.post("")
 async def save_analysis(
     requirement_id: int,
     analysis_data: AnalysisCreate,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(get_current_user),
 ):
     """Save analysis results for a requirement.
@@ -51,6 +57,14 @@ async def save_analysis(
     Returns:
         Saved analysis
     """
+    # 检查用户认证
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     service = AnalysisService(db)
     analysis = await service.save_analysis(
         requirement_id, analysis_data, current_user.id
@@ -62,12 +76,18 @@ async def save_analysis(
             detail="Requirement not found",
         )
 
-    return analysis
+    # 使用与requirements API相同的标准响应格式
+    analysis_response = AnalysisResponse.model_validate(analysis)
+    return {
+        "success": True,
+        "message": "分析保存成功",
+        "data": analysis_response.model_dump()
+    }
 
 
 @router.get("/summary", response_model=AnalysisSummary)
 async def get_analysis_summary(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(get_current_user),
 ):
     """Get analysis summary across all requirements.

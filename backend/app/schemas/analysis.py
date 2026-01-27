@@ -97,7 +97,7 @@ class AnalysisResponse(BaseModel):
     kano_category: str
     rice_score: Dict[str, Any]
     overall_score: float
-    analyzed_by: Optional[int]
+    analyzed_by: Optional[int] = None
     analyzed_at: str
 
 

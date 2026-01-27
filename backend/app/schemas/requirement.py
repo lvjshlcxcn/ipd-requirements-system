@@ -74,6 +74,7 @@ class RequirementUpdate(BaseModel):
     source_contact: Optional[str] = Field(None, max_length=100)
     status: Optional[str] = None
     priority_score: Optional[int] = Field(None, ge=0, le=100)
+    priority_rank: Optional[int] = Field(None, ge=1, le=1000)
     moscow_priority: Optional[str] = Field(None, description="MoSCoW priority")
     moscow_comment: Optional[str] = Field(None, description="MoSCoW priority justification")
     estimated_duration_months: Optional[int] = Field(None, ge=1, le=120)
@@ -98,7 +99,9 @@ class RequirementResponse(BaseModel):
     moscow_comment: Optional[str] = None
     priority_rank: Optional[int] = None
     kano_category: Optional[str] = None
+    invest_analysis: Optional[Dict[str, Any]] = None  # 添加INVEST分析
     appeals_scores: Optional[Dict[str, Any]] = None
+    rice_score: Optional[Dict[str, Any]] = None  # 添加RICE评分
     target_type: Optional[str] = None
     target_id: Optional[int] = None
     estimated_duration_months: Optional[int] = None

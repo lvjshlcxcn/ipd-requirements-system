@@ -135,9 +135,9 @@ from app.api.v1 import (
 )
 
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
+app.include_router(analysis.router, prefix=settings.API_V1_PREFIX)  # 先注册更具体的路由
 app.include_router(requirements.router, prefix=settings.API_V1_PREFIX)
 app.include_router(notifications.router, prefix=settings.API_V1_PREFIX)
-app.include_router(analysis.router, prefix=settings.API_V1_PREFIX)
 app.include_router(tenant.router, prefix=settings.API_V1_PREFIX)
 app.include_router(import_export.router, prefix=settings.API_V1_PREFIX)
 app.include_router(verification.router, prefix=settings.API_V1_PREFIX)

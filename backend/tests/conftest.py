@@ -193,8 +193,12 @@ async def async_client(async_db_session: AsyncSession, test_tenant: Tenant):
     async def override_get_db():
         yield async_db_session
 
-    from app.db.session import get_db
+    async def override_get_async_db():
+        yield async_db_session
+
+    from app.db.session import get_db, get_async_db
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_async_db] = override_get_async_db
 
     # Create async client
     transport = ASGITransport(app=app)
@@ -380,8 +384,26 @@ def pytest_configure(config):
 # ============ 业务对象 Fixtures ============
 
 @pytest.fixture(scope="function")
-async def test_requirement(async_db_session: AsyncSession, test_user: User, test_tenant: Tenant) -> Requirement:
-    """Create test requirement in database."""
+def test_requirement(db_session: Session, test_user_sync: User, test_tenant_sync: Tenant) -> Requirement:
+    """Create test requirement in database (sync version for unit tests)."""
+    requirement = Requirement(
+        requirement_no="REQ-001",
+        title="Test Requirement",
+        description="Test description",
+        source_channel="customer",
+        status="collected",
+        tenant_id=test_tenant_sync.id,
+        created_by=test_user_sync.id,
+    )
+    db_session.add(requirement)
+    db_session.commit()
+    db_session.refresh(requirement)
+    return requirement
+
+
+@pytest.fixture(scope="function")
+async def test_requirement_async(async_db_session: AsyncSession, test_user: User, test_tenant: Tenant) -> Requirement:
+    """Create test requirement in database (async version for integration tests)."""
     requirement = Requirement(
         requirement_no="REQ-001",
         title="Test Requirement",

@@ -33,7 +33,12 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
         Async database session
     """
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()  # Commit transaction if no exceptions
+        except Exception:
+            await session.rollback()  # Rollback on error
+            raise
 
 
 # Alias for compatibility with existing code
