@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPD需求十问 → 用户故事 → INVEST分析</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f0f2f5;
+            color: rgba(0, 0, 0, 0.88);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .steps {
+            display: flex;
+            justify-content: center;
+            background: #fafafa;
+            padding: 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .step {
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: rgba(0, 0, 0, 0.45);
+            cursor: default;
+            transition: all 0.3s;
+        }
+
+        .step.active {
+            background: #1890ff;
+            color: white;
+            font-weight: 500;
+        }
+
+        .step.completed {
+            color: #52c41a;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: rgba(0, 0, 0, 0.88);
+        }
+
+        .form-label .required {
+            color: #ff4d4f;
+            margin-left: 4px;
+        }
+
+        .form-label .hint {
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.45);
+            font-weight: normal;
+            margin-left: 8px;
+        }
+
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: #1890ff;
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #1890ff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #40a9ff;
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid #d9d9d9;
+            color: rgba(0, 0, 0, 0.88);
+        }
+
+        .btn-secondary:hover {
+            color: #1890ff;
+            border-color: #1890ff;
+        }
+
+        .btn-success {
+            background: #52c41a;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #73d13d;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+            justify-content: center;
+        }
+
+        /* Story Card Styles */
+        .story-card {
+            background: #fafafa;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .story-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1890ff;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #1890ff;
+        }
+
+        .story-section {
+            margin-bottom: 20px;
+        }
+
+        .story-section-title {
+            font-weight: 600;
+            color: rgba(0, 0, 0, 0.88);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .story-section-title .icon {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        .story-content {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 3px solid #1890ff;
+        }
+
+        .acceptance-criteria {
+            list-style: none;
+        }
+
+        .acceptance-criteria li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .acceptance-criteria li:before {
+            content: "✓";
+            position: absolute;
+            left: 8px;
+            color: #52c41a;
+            font-weight: bold;
+        }
+
+        /* INVEST Analysis Styles */
+        .invest-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .invest-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .invest-controls {
+            background: #fafafa;
+            padding: 25px;
+            border-radius: 8px;
+        }
+
+        .invest-slider-group {
+            margin-bottom: 20px;
+        }
+
+        .invest-slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .invest-slider-value {
+            color: #1890ff;
+            font-weight: 600;
+        }
+
+        .invest-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #f0f0f0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .invest-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #1890ff;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .invest-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #1890ff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .invest-visualization {
+            background: #fafafa;
+            padding: 25px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .radar-chart-container {
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1;
+        }
+
+        .invest-score-display {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .total-score {
+            font-size: 48px;
+            font-weight: 700;
+            color: #1890ff;
+        }
+
+        .total-score.excellent {
+            color: #52c41a;
+        }
+
+        .total-score.good {
+            color: #faad14;
+        }
+
+        .total-score.poor {
+            color: #ff4d4f;
+        }
+
+        .score-label {
+            font-size: 14px;
+            color: rgba(0, 0, 0, 0.45);
+            margin-top: 5px;
+        }
+
+        .suggestions {
+            margin-top: 30px;
+            background: #fff7e6;
+            border-left: 4px solid #faad14;
+            padding: 15px 20px;
+            border-radius: 4px;
+        }
+
+        .suggestions-title {
+            font-weight: 600;
+            color: #ad6800;
+            margin-bottom: 10px;
+        }
+
+        .suggestions-list {
+            list-style: none;
+        }
+
+        .suggestions-list li {
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+            font-size: 14px;
+        }
+
+        .suggestions-list li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #faad14;
+            font-weight: bold;
+        }
+
+        /* Export Section */
+        .export-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #f0f0f0;
+            text-align: center;
+        }
+
+        .export-section h3 {
+            margin-bottom: 15px;
+            color: rgba(0, 0, 0, 0.88);
+        }
+
+        /* Alert Styles */
+        .alert {
+            padding: 12px 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #e6f7ff;
+            border-left: 4px solid #1890ff;
+            color: #0050b3;
+        }
+
+        .alert-success {
+            background: #f6ffed;
+            border-left: 4px solid #52c41a;
+            color: #389e0d;
+        }
+
+        .alert-warning {
+            background: #fffbe6;
+            border-left: 4px solid #faad14;
+            color: #ad6800;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 IPD需求十问 → 用户故事 → INVEST分析</h1>
+            <p>从需求收集到质量评估的完整工作流</p>
+        </div>
+
+        <div class="steps">
+            <div class="step active" id="step1-indicator">1. IPD需求十问</div>
+            <div class="step" id="step2-indicator">2. 用户故事</div>
+            <div class="step" id="step3-indicator">3. INVEST分析</div>
+        </div>
+
+        <div class="content">
+            <!-- Step 1: IPD Questionnaire -->
+            <div class="section active" id="step1">
+                <div class="alert alert-info">
+                    <strong>💡 提示：</strong>请填写IPD需求十问，帮助我们全面了解需求背景和细节。
+                </div>
+
+                <form id="ipdForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">
+                                1. 谁关心这个需求？
+                                <span class="required">*</span>
+                            </label>
+                            <input type="text" class="form-input" id="q1_who" required
+                                   placeholder="例如：电商平台的卖家、采购经理、系统管理员">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                2. 他们为什么关心？
+                                <span class="required">*</span>
+                            </label>
+                            <textarea class="form-textarea" id="q2_why" required
+                                      placeholder="描述业务痛点或机会"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                3. 具体遇到了什么问题？
+                                <span class="required">*</span>
+                            </label>
+                            <textarea class="form-textarea" id="q3_what_problem" required
+                                      placeholder="描述当前面临的具体问题"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                4. 现在的解决方案是什么？
+                            </label>
+                            <textarea class="form-textarea" id="q4_current_solution"
+                                      placeholder="描述现有的解决方案或工作流程"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                5. 当前方案有什么问题？
+                            </label>
+                            <textarea class="form-textarea" id="q5_current_issues"
+                                      placeholder="列出当前方案存在的痛点"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                6. 理想的解决方案是什么？
+                                <span class="required">*</span>
+                            </label>
+                            <textarea class="form-textarea" id="q6_ideal_solution" required
+                                      placeholder="描述期望的解决方案"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                7. 优先级
+                                <span class="required">*</span>
+                            </label>
+                            <select class="form-select" id="q7_priority" required>
+                                <option value="">请选择优先级</option>
+                                <option value="high">高 - 必须实现</option>
+                                <option value="medium">中 - 应该实现</option>
+                                <option value="low">低 - 可以实现</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                8. 使用频率
+                                <span class="required">*</span>
+                            </label>
+                            <select class="form-select" id="q8_frequency" required>
+                                <option value="">请选择使用频率</option>
+                                <option value="daily">每天多次</option>
+                                <option value="weekly">每周几次</option>
+                                <option value="monthly">每月几次</option>
+                                <option value="occasional">偶尔使用</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                9. 预期的业务价值或收益
+                            </label>
+                            <textarea class="form-textarea" id="q9_expected_value"
+                                      placeholder="描述预期带来的业务价值"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                10. 如何衡量成功？
+                            </label>
+                            <textarea class="form-textarea" id="q10_success_metrics"
+                                      placeholder="列出可量化的成功指标"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary">
+                            生成用户故事 →
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 2: User Story -->
+            <div class="section" id="step2">
+                <div class="story-card">
+                    <div class="story-title" id="storyTitle">用户故事标题</div>
+
+                    <div class="story-section">
+                        <div class="story-section-title">
+                            <span class="icon">👤</span>
+                            角色 (Role)
+                        </div>
+                        <div class="story-content" id="storyRole">-</div>
+                    </div>
+
+                    <div class="story-section">
+                        <div class="story-section-title">
+                            <span class="icon">⚡</span>
+                            行动 (Action)
+                        </div>
+                        <div class="story-content" id="storyAction">-</div>
+                    </div>
+
+                    <div class="story-section">
+                        <div class="story-section-title">
+                            <span class="icon">💎</span>
+                            价值 (Benefit)
+                        </div>
+                        <div class="story-content" id="storyBenefit">-</div>
+                    </div>
+
+                    <div class="story-section">
+                        <div class="story-section-title">
+                            <span class="icon">✅</span>
+                            验收标准 (Acceptance Criteria)
+                        </div>
+                        <ul class="acceptance-criteria" id="storyAcceptanceCriteria">
+                            <li>暂无验收标准</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-secondary" id="editStoryBtn">
+                        ← 返回修改
+                    </button>
+                    <button class="btn btn-success" id="startInvestBtn">
+                        开始 INVEST 分析 →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: INVEST Analysis -->
+            <div class="section" id="step3">
+                <div class="invest-container">
+                    <div class="invest-controls">
+                        <h3 style="margin-bottom: 20px; color: rgba(0, 0, 0, 0.88);">
+                            📊 INVEST 评分
+                        </h3>
+
+                        <div class="invest-slider-group">
+                            <div class="invest-slider-label">
+                                <span>Independent<br><small>独立性</small></span>
+                                <span class="invest-slider-value" id="independentValue">70</span>
+                            </div>
+                            <input type="range" class="invest-slider" id="independent" min="0" max="100" value="70">
+                        </div>
+
+                        <div class="invest-slider-group">
+                            <div class="invest-slider-label">
+                                <span>Negotiable<br><small>可协商性</small></span>
+                                <span class="invest-slider-value" id="negotiableValue">70</span>
+                            </div>
+                            <input type="range" class="invest-slider" id="negotiable" min="0" max="100" value="70">
+                        </div>
+
+                        <div class="invest-slider-group">
+                            <div class="invest-slider-label">
+                                <span>Valuable<br><small>价值性</small></span>
+                                <span class="invest-slider-value" id="valuableValue">70</span>
+                            </div>
+                            <input type="range" class="invest-slider" id="valuable" min="0" max="100" value="70">
+                        </div>
+
+                        <div class="invest-slider-group">
+                            <div class="invest-slider-label">
+                                <span>Estimable<br><small>可估算性</small></span>
+                                <span class="invest-slider-value" id="estimableValue">70</span>
+                            </div>
+                            <input type="range" class="invest-slider" id="estimable" min="0" max="100" value="70">
+                        </div>
+
+                        <div class="invest-slider-group">
+                            <div class="invest-slider-label">
+                                <span>Small<br><small>小型</small></span>
+                                <span class="invest-slider-value" id="smallValue">70</span>
+                            </div>
+                            <input type="range" class="invest-slider" id="small" min="0" max="100" value="70">
+                        </div>
+
+                        <div class="invest-slider-group">
+                            <div class="invest-slider-label">
+                                <span>Testable<br><small>可测试性</small></span>
+                                <span class="invest-slider-value" id="testableValue">70</span>
+                            </div>
+                            <input type="range" class="invest-slider" id="testable" min="0" max="100" value="70">
+                        </div>
+                    </div>
+
+                    <div class="invest-visualization">
+                        <div class="radar-chart-container">
+                            <canvas id="radarChart"></canvas>
+                        </div>
+
+                        <div class="invest-score-display">
+                            <div class="total-score" id="totalScore">70</div>
+                            <div class="score-label">总分 / 100</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="suggestions" id="suggestions">
+                    <div class="suggestions-title">💡 改进建议</div>
+                    <ul class="suggestions-list" id="suggestionsList">
+                        <li>调整评分以获取改进建议</li>
+                    </ul>
+                </div>
+
+                <div class="export-section">
+                    <h3>📥 导出结果</h3>
+                    <div class="button-group">
+                        <button class="btn btn-secondary" id="exportJsonBtn">
+                            导出 JSON
+                        </button>
+                        <button class="btn btn-secondary" id="restartBtn">
+                            重新开始
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let ipdData = {};
+        let userStory = {};
+        let investScores = {
+            independent: 70,
+            negotiable: 70,
+            valuable: 70,
+            estimable: 70,
+            small: 70,
+            testable: 70
+        };
+
+        // DOM Elements
+        const ipdForm = document.getElementById('ipdForm');
+        const editStoryBtn = document.getElementById('editStoryBtn');
+        const startInvestBtn = document.getElementById('startInvestBtn');
+        const exportJsonBtn = document.getElementById('exportJsonBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const radarCanvas = document.getElementById('radarChart');
+        const radarCtx = radarCanvas.getContext('2d');
+
+        // Resize canvas for retina displays
+        function resizeCanvas() {
+            const container = radarCanvas.parentElement;
+            const size = Math.min(container.offsetWidth, container.offsetHeight);
+            const dpr = window.devicePixelRatio || 1;
+            radarCanvas.width = size * dpr;
+            radarCanvas.height = size * dpr;
+            radarCanvas.style.width = size + 'px';
+            radarCanvas.style.height = size + 'px';
+            radarCtx.scale(dpr, dpr);
+            drawRadarChart();
+        }
+
+        // Generate User Story from IPD data
+        function generateUserStory(ipd) {
+            // Extract role
+            let role = ipd.q1_who || '用户';
+
+            // Extract action from ideal solution
+            let action = ipd.q6_ideal_solution || '执行操作';
+            if (action.length > 100) {
+                action = action.substring(0, 100) + '...';
+            }
+
+            // Extract benefit from why they care
+            let benefit = ipd.q2_why || '获得价值';
+            if (benefit.length > 100) {
+                benefit = benefit.substring(0, 100) + '...';
+            }
+
+            // Generate acceptance criteria
+            const criteria = [];
+
+            if (ipd.q6_ideal_solution) {
+                criteria.push(`系统能够：${ipd.q6_ideal_solution.substring(0, 50)}...`);
+            }
+
+            if (ipd.q7_priority === 'high') {
+                criteria.push('功能必须优先实现，无替代方案');
+            }
+
+            if (ipd.q8_frequency === 'daily') {
+                criteria.push('系统响应时间应小于2秒（高频使用场景）');
+            } else if (ipd.q8_frequency === 'weekly') {
+                criteria.push('系统响应时间应小于3秒');
+            }
+
+            if (ipd.q10_success_metrics) {
+                criteria.push(`成功指标：${ipd.q10_success_metrics.substring(0, 40)}...`);
+            }
+
+            if (criteria.length === 0) {
+                criteria.push('功能正常工作且符合用户预期');
+                criteria.push('通过所有测试用例');
+                criteria.push('性能满足系统要求');
+            }
+
+            // Generate title
+            const title = `${role}需要${action.substring(0, 20)}...`;
+
+            return {
+                title,
+                role,
+                action,
+                benefit,
+                acceptanceCriteria: criteria
+            };
+        }
+
+        // Display user story
+        function displayUserStory(story) {
+            document.getElementById('storyTitle').textContent = story.title;
+            document.getElementById('storyRole').textContent = story.role;
+            document.getElementById('storyAction').textContent = story.action;
+            document.getElementById('storyBenefit').textContent = story.benefit;
+
+            const criteriaList = document.getElementById('storyAcceptanceCriteria');
+            criteriaList.innerHTML = '';
+            story.acceptanceCriteria.forEach(criteria => {
+                const li = document.createElement('li');
+                li.textContent = criteria;
+                criteriaList.appendChild(li);
+            });
+        }
+
+        // Draw radar chart
+        function drawRadarChart() {
+            const size = radarCanvas.width / (window.devicePixelRatio || 1);
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const radius = (size / 2) * 0.7;
+
+            // Clear canvas
+            radarCtx.clearRect(0, 0, size, size);
+
+            const labels = ['Independent', 'Negotiable', 'Valuable', 'Estimable', 'Small', 'Testable'];
+            const data = [
+                investScores.independent,
+                investScores.negotiable,
+                investScores.valuable,
+                investScores.estimable,
+                investScores.small,
+                investScores.testable
+            ];
+
+            const angleStep = (Math.PI * 2) / 6;
+
+            // Draw background grid
+            for (let i = 1; i <= 5; i++) {
+                radarCtx.beginPath();
+                radarCtx.strokeStyle = '#f0f0f0';
+                radarCtx.lineWidth = 1;
+
+                for (let j = 0; j < 6; j++) {
+                    const angle = j * angleStep - Math.PI / 2;
+                    const r = (radius / 5) * i;
+                    const x = centerX + r * Math.cos(angle);
+                    const y = centerY + r * Math.sin(angle);
+
+                    if (j === 0) {
+                        radarCtx.moveTo(x, y);
+                    } else {
+                        radarCtx.lineTo(x, y);
+                    }
+                }
+
+                radarCtx.closePath();
+                radarCtx.stroke();
+            }
+
+            // Draw axes
+            for (let i = 0; i < 6; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+
+                radarCtx.beginPath();
+                radarCtx.strokeStyle = '#d9d9d9';
+                radarCtx.moveTo(centerX, centerY);
+                radarCtx.lineTo(x, y);
+                radarCtx.stroke();
+
+                // Draw labels
+                const labelRadius = radius + 20;
+                const labelX = centerX + labelRadius * Math.cos(angle);
+                const labelY = centerY + labelRadius * Math.sin(angle);
+
+                radarCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+                radarCtx.font = '11px sans-serif';
+                radarCtx.textAlign = 'center';
+                radarCtx.textBaseline = 'middle';
+                radarCtx.fillText(labels[i], labelX, labelY);
+            }
+
+            // Draw data polygon
+            radarCtx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                const value = data[i] / 100;
+                const r = radius * value;
+                const x = centerX + r * Math.cos(angle);
+                const y = centerY + r * Math.sin(angle);
+
+                if (i === 0) {
+                    radarCtx.moveTo(x, y);
+                } else {
+                    radarCtx.lineTo(x, y);
+                }
+            }
+            radarCtx.closePath();
+
+            // Fill with gradient
+            const gradient = radarCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+            gradient.addColorStop(0, 'rgba(24, 144, 255, 0.3)');
+            gradient.addColorStop(1, 'rgba(24, 144, 255, 0.1)');
+            radarCtx.fillStyle = gradient;
+            radarCtx.fill();
+
+            radarCtx.strokeStyle = '#1890ff';
+            radarCtx.lineWidth = 2;
+            radarCtx.stroke();
+
+            // Draw data points
+            for (let i = 0; i < 6; i++) {
+                const angle = i * angleStep - Math.PI / 2;
+                const value = data[i] / 100;
+                const r = radius * value;
+                const x = centerX + r * Math.cos(angle);
+                const y = centerY + r * Math.sin(angle);
+
+                radarCtx.beginPath();
+                radarCtx.fillStyle = '#1890ff';
+                radarCtx.arc(x, y, 4, 0, Math.PI * 2);
+                radarCtx.fill();
+            }
+        }
+
+        // Calculate total score
+        function calculateTotalScore() {
+            const scores = Object.values(investScores);
+            return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+        }
+
+        // Update score display
+        function updateScoreDisplay() {
+            const total = calculateTotalScore();
+            const totalScoreEl = document.getElementById('totalScore');
+            totalScoreEl.textContent = total;
+
+            totalScoreEl.classList.remove('excellent', 'good', 'poor');
+            if (total >= 80) {
+                totalScoreEl.classList.add('excellent');
+            } else if (total >= 60) {
+                totalScoreEl.classList.add('good');
+            } else {
+                totalScoreEl.classList.add('poor');
+            }
+        }
+
+        // Generate suggestions
+        function generateSuggestions() {
+            const suggestions = [];
+            const scores = investScores;
+
+            if (scores.independent < 60) {
+                suggestions.push('独立性较低：尝试将需求拆分为更小、更独立的功能模块');
+            }
+            if (scores.negotiable < 60) {
+                suggestions.push('可协商性不足：与团队讨论是否有替代方案或简化实现的方式');
+            }
+            if (scores.valuable < 60) {
+                suggestions.push('价值性不明确：重新评估需求的业务价值和用户收益');
+            }
+            if (scores.estimable < 60) {
+                suggestions.push('可估算性差：需求可能过于模糊，需要进一步细化和澄清');
+            }
+            if (scores.small < 60) {
+                suggestions.push('规模偏大：考虑将需求拆分为多个小的用户故事');
+            }
+            if (scores.testable < 60) {
+                suggestions.push('可测试性不足：定义明确的验收标准和测试场景');
+            }
+
+            if (suggestions.length === 0) {
+                suggestions.push('各项指标表现良好！这是一个高质量的用户故事。');
+            }
+
+            const suggestionsList = document.getElementById('suggestionsList');
+            suggestionsList.innerHTML = '';
+            suggestions.forEach(s => {
+                const li = document.createElement('li');
+                li.textContent = s;
+                suggestionsList.appendChild(li);
+            });
+        }
+
+        // Switch sections
+        function switchSection(sectionNum) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active', 'completed'));
+
+            for (let i = 1; i <= sectionNum; i++) {
+                const step = document.getElementById(`step${i}-indicator`);
+                if (i < sectionNum) {
+                    step.classList.add('completed');
+                } else {
+                    step.classList.add('active');
+                }
+            }
+
+            document.getElementById(`step${sectionNum}`).classList.add('active');
+
+            if (sectionNum === 3) {
+                setTimeout(resizeCanvas, 100);
+            }
+        }
+
+        // Event Listeners
+        ipdForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            ipdData = {
+                q1_who: document.getElementById('q1_who').value,
+                q2_why: document.getElementById('q2_why').value,
+                q3_what_problem: document.getElementById('q3_what_problem').value,
+                q4_current_solution: document.getElementById('q4_current_solution').value,
+                q5_current_issues: document.getElementById('q5_current_issues').value,
+                q6_ideal_solution: document.getElementById('q6_ideal_solution').value,
+                q7_priority: document.getElementById('q7_priority').value,
+                q8_frequency: document.getElementById('q8_frequency').value,
+                q9_expected_value: document.getElementById('q9_expected_value').value,
+                q10_success_metrics: document.getElementById('q10_success_metrics').value
+            };
+
+            userStory = generateUserStory(ipdData);
+            displayUserStory(userStory);
+            switchSection(2);
+        });
+
+        editStoryBtn.addEventListener('click', function() {
+            switchSection(1);
+        });
+
+        startInvestBtn.addEventListener('click', function() {
+            switchSection(3);
+            updateScoreDisplay();
+            generateSuggestions();
+        });
+
+        // INVEST sliders
+        ['independent', 'negotiable', 'valuable', 'estimable', 'small', 'testable'].forEach(dim => {
+            const slider = document.getElementById(dim);
+            const valueDisplay = document.getElementById(dim + 'Value');
+
+            slider.addEventListener('input', function() {
+                investScores[dim] = parseInt(this.value);
+                valueDisplay.textContent = this.value;
+                drawRadarChart();
+                updateScoreDisplay();
+                generateSuggestions();
+            });
+        });
+
+        // Export JSON
+        exportJsonBtn.addEventListener('click', function() {
+            const exportData = {
+                ipdData: ipdData,
+                userStory: userStory,
+                investAnalysis: {
+                    scores: investScores,
+                    totalScore: calculateTotalScore(),
+                    timestamp: new Date().toISOString()
+                }
+            };
+
+            const json = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ipd-story-flow-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // Restart
+        restartBtn.addEventListener('click', function() {
+            if (confirm('确定要重新开始吗？当前数据将丢失。')) {
+                ipdForm.reset();
+                ipdData = {};
+                userStory = {};
+                investScores = {
+                    independent: 70,
+                    negotiable: 70,
+                    valuable: 70,
+                    estimable: 70,
+                    small: 70,
+                    testable: 70
+                };
+
+                ['independent', 'negotiable', 'valuable', 'estimable', 'small', 'testable'].forEach(dim => {
+                    document.getElementById(dim).value = 70;
+                    document.getElementById(dim + 'Value').textContent = '70';
+                });
+
+                switchSection(1);
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (document.getElementById('step3').classList.contains('active')) {
+                resizeCanvas();
+            }
+        });
+
+        // Initial draw
+        window.addEventListener('load', function() {
+            resizeCanvas();
+        });
+    </script>
+</body>
+</html>
