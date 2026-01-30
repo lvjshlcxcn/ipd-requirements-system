@@ -3,16 +3,28 @@ import { message } from 'antd'
 import { investService, INVESTAnalysisData } from '@/services/invest.service'
 
 /**
+ * INVEST维度配置
+ */
+export const INVEST_DIMENSIONS = [
+  { key: 'independent', label: '独立', description: '需求之间相互独立，减少依赖' },
+  { key: 'negotiable', label: '可协商', description: '需求细节可协商调整' },
+  { key: 'valuable', label: '有价值', description: '对用户和业务有明显价值' },
+  { key: 'estimable', label: '可估算', description: '工作量能够合理估算' },
+  { key: 'small', label: '小型', description: '规模适中，可在短期内完成' },
+  { key: 'testable', label: '可测试', description: '有明确的验收标准和测试方法' },
+] as const
+
+/**
  * INVEST分析Hook
- * 封装INVEST分析的业务逻辑
+ * 封装INVEST分析的业务逻辑（评分系统）
  */
 const INITIAL_STATE: INVESTAnalysisData = {
-  independent: false,
-  negotiable: false,
-  valuable: false,
-  estimable: false,
-  small: false,
-  testable: false,
+  independent: 50,
+  negotiable: 50,
+  valuable: 50,
+  estimable: 50,
+  small: 50,
+  testable: 50,
   notes: '',
 }
 
@@ -77,12 +89,37 @@ export const useINVESTAnalysis = (requirementId: number | null) => {
   }
 
   /**
-   * 计算通过的数量
+   * 计算总分（0-600）
    */
-  const calculatePassedCount = (data: INVESTAnalysisData): number => {
-    return Object.values(data)
-      .filter(value => typeof value === 'boolean' && value === true)
-      .length
+  const calculateTotalScore = (): number => {
+    return (
+      investData.independent +
+      investData.negotiable +
+      investData.valuable +
+      investData.estimable +
+      investData.small +
+      investData.testable
+    )
+  }
+
+  /**
+   * 计算平均分（0-100）
+   */
+  const calculateAverageScore = (): string => {
+    const total = calculateTotalScore()
+    return (total / 6).toFixed(2)
+  }
+
+  /**
+   * 获取雷达图数据
+   */
+  const getRadarChartData = () => {
+    return INVEST_DIMENSIONS.map((dim) => ({
+      dimension: dim.label,
+      fullMark: 100,
+      score: investData[dim.key] || 0,
+      key: dim.key,
+    }))
   }
 
   /**
@@ -95,7 +132,7 @@ export const useINVESTAnalysis = (requirementId: number | null) => {
   /**
    * 更新INVEST数据中的单个字段
    */
-  const updateInvestData = (field: keyof INVESTAnalysisData, value: boolean | string) => {
+  const updateInvestData = (field: keyof INVESTAnalysisData, value: number | string) => {
     setInvestData((prev) => ({
       ...prev,
       [field]: value,
@@ -117,6 +154,9 @@ export const useINVESTAnalysis = (requirementId: number | null) => {
     updateInvestData,
     saveINVESTAnalysis,
     resetINVESTData,
-    calculatePassedCount,
+    calculateTotalScore,
+    calculateAverageScore,
+    getRadarChartData,
+    INVEST_DIMENSIONS,
   }
 }

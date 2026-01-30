@@ -1,17 +1,16 @@
 import api from '@/services/api'
 
 /**
- * INVEST分析数据接口
+ * INVEST分析数据接口 - 评分系统
  */
 export interface INVESTAnalysisData {
-  independent: boolean
-  negotiable: boolean
-  valuable: boolean
-  estimable: boolean
-  small: boolean
-  testable: boolean
+  independent: number  // 0-100
+  negotiable: number
+  valuable: number
+  estimable: number
+  small: number
+  testable: number
   notes?: string
-  passedCount?: number
 }
 
 /**
@@ -19,14 +18,14 @@ export interface INVESTAnalysisData {
  */
 export interface INVESTAnalysisResponse {
   requirement_id: number
-  independent: boolean
-  negotiable: boolean
-  valuable: boolean
-  estimable: boolean
-  small: boolean
-  testable: boolean
-  passed_count: number
-  total_count: number
+  independent: number
+  negotiable: number
+  valuable: number
+  estimable: number
+  small: number
+  testable: number
+  total_score: number
+  average_score: number
   notes?: string
   analyzed_at: string
 }
@@ -48,7 +47,7 @@ export const investService = {
   /**
    * 保存需求的INVEST分析数据
    * @param requirementId 需求ID
-   * @param data INVEST分析数据
+   * @param data INVEST分析数据（评分 0-100）
    * @returns Promise<INVESTAnalysisResponse>
    */
   saveINVESTAnalysis: async (
