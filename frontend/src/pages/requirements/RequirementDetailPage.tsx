@@ -7,6 +7,7 @@ import {
   DeleteOutlined,
   BarChartOutlined,
   RadarChartOutlined,
+  CloseOutlined,
 } from '@ant-design/icons'
 import { requirementService, Requirement } from '@/services/requirement.service'
 import { RequirementHistoryTimeline } from '@/components/requirements/RequirementHistoryTimeline'
@@ -277,7 +278,22 @@ function RequirementDetailPage() {
 
       <Divider style={{ margin: '24px 0' }} />
 
-      <Card title="历史记录" type="inner">
+      <Card
+        title={
+          <Space>
+            <span>历史记录</span>
+            <Button
+              type="text"
+              size="small"
+              icon={<CloseOutlined />}
+              onClick={() => navigate('/requirements')}
+              style={{ color: 'rgba(0, 0, 0, 0.45)', fontSize: '14px' }}
+              title="返回列表"
+            />
+          </Space>
+        }
+        type="inner"
+      >
         <RequirementHistoryTimeline requirementId={parseInt(id!)} />
       </Card>
     </div>

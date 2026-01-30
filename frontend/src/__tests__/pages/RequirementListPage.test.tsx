@@ -157,7 +157,7 @@ describe('RequirementListPage', () => {
         await waitFor(
           () => {
             // 检查是否调用了getRequirements
-            expect(vi.mocked(requirementService.getRequirements).toHaveBeenCalled()
+            expect(vi.mocked(requirementService.getRequirements)).toHaveBeenCalled()
           },
           { timeout: 3000 }
         )
@@ -200,7 +200,7 @@ describe('RequirementListPage', () => {
           total_pages: 0,
         },
       }
-      vi.mocked(requirementService.getRequirements.mockResolvedValue(emptyResponse)
+      vi.mocked(requirementService.getRequirements).mockResolvedValue(emptyResponse)
 
       render(<RequirementListPage />)
 
@@ -216,7 +216,7 @@ describe('RequirementListPage', () => {
       // Mock console.error to avoid noise
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-      vi.mocked(requirementService.getRequirements.mockRejectedValue(new Error('Network error'))
+      vi.mocked(requirementService.getRequirements).mockRejectedValue(new Error('Network error'))
 
       render(<RequirementListPage />)
 

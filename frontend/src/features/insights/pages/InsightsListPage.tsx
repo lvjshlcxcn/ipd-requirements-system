@@ -5,8 +5,10 @@ import {
   EyeOutlined,
   DeleteOutlined,
   ReloadOutlined,
+  PlusOutlined,
 } from '@ant-design/icons'
 import { InsightResultModal } from '@/components/insights/InsightResultModal'
+import { TextInsightModal } from '@/components/insights/TextInsightModal'
 import insightService from '@/services/insight.service'
 import type { Insight } from '@/types/insight'
 
@@ -15,6 +17,7 @@ export const InsightsListPage: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [selectedInsight, setSelectedInsight] = useState<Insight | null>(null)
   const [resultModalVisible, setResultModalVisible] = useState(false)
+  const [textInsightModalVisible, setTextInsightModalVisible] = useState(false)
 
   // 加载洞察列表
   const loadInsights = async () => {
@@ -59,6 +62,18 @@ export const InsightsListPage: React.FC = () => {
         }
       }
     })
+  }
+
+  // 处理新建分析
+  const handleNewAnalysis = () => {
+    setTextInsightModalVisible(true)
+  }
+
+  // 处理分析完成
+  const handleAnalysisComplete = (insight: Insight) => {
+    message.success('分析完成！')
+    setTextInsightModalVisible(false)
+    loadInsights() // 刷新列表
   }
 
   // 状态映射
@@ -163,12 +178,19 @@ export const InsightsListPage: React.FC = () => {
       <Card>
         <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ margin: 0 }}>📊 AI 洞察分析列表</h2>
+            <h2 style={{ margin: 0 }}>📊 AI 洞察历史记录</h2>
             <p style={{ margin: '8px 0 0 0', color: '#999' }}>
               共 {insights.length} 条分析记录
             </p>
           </div>
           <Space>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleNewAnalysis}
+            >
+              新建分析
+            </Button>
             <Button icon={<ReloadOutlined />} onClick={loadInsights}>
               刷新
             </Button>
@@ -197,6 +219,13 @@ export const InsightsListPage: React.FC = () => {
           setResultModalVisible(false)
           setSelectedInsight(null)
         }}
+      />
+
+      {/* 文本洞察分析弹窗 */}
+      <TextInsightModal
+        visible={textInsightModalVisible}
+        onClose={() => setTextInsightModalVisible(false)}
+        onAnalysisComplete={handleAnalysisComplete}
       />
     </div>
   )

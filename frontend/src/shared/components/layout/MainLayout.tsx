@@ -146,9 +146,13 @@ export function MainLayout({ children }: MainLayoutProps) {
   }, [isLocked, resetSessionTimeout])
 
   // 修复: 使用正确的 onClick 签名
-  const handleMenuClick = ({ key }: { key: string }) => {
+  const handleMenuClick = useCallback(({ key }: { key: string }) => {
+    console.log('[MainLayout] Menu clicked key:', key)
+
+    // 正常导航到所有页面（包括 /insights 历史记录页面）
+    console.log('[MainLayout] Navigating to:', key)
     navigate(key)
-  }
+  }, [navigate])
 
   const handleLogout = () => {
     Modal.confirm({
@@ -260,7 +264,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               />
             </Tooltip>
             <span style={{ color: '#666' }}>
-              <UserOutlined /> {userInfo?.username || 'User'}
+              <UserOutlined /> {user?.username || userInfo?.username || 'User'}
             </span>
             <Button
               type="text"
