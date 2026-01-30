@@ -15,6 +15,7 @@ const VerificationListPage = lazy(() => import('@/pages/verifications/Verificati
 const VerificationChecklistForm = lazy(() => import('@/pages/verifications/VerificationChecklistForm'))
 const MainLayout = lazy(() => import('@/shared/components/layout/MainLayout').then(m => ({ default: m.MainLayout })))
 const SettingsPage = lazy(() => import('@/features/settings/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
+const IPDStoryFlowPage = lazy(() => import('@/pages/ipd-story/IPDStoryFlowPage').then(m => ({ default: m.IPDStoryFlowPage })))
 
 export const routeConfigs: RouteConfig[] = [
   {
@@ -32,11 +33,12 @@ export const routeConfigs: RouteConfig[] = [
       { path: '/requirements', element: RequirementsListPage, title: '需求管理' },
       { path: '/requirements/new', element: RequirementEditPage, title: '新建需求' },
       { path: '/requirements/edit/:id', element: RequirementEditPage, title: '编辑需求' },
-      { path: '/insights', element: InsightsListPage, title: 'AI洞察' },
+      { path: '/insights', element: InsightsListPage, title: 'AI洞察历史记录' },
       { path: '/analytics', element: AnalyticsPage, title: '需求分析' },
       { path: '/distribution', element: DistributionPage, title: '需求分发' },
       { path: '/rtm', element: RTMPage, title: '需求跟踪' },
       { path: '/verification', element: VerificationOverviewPage, title: '需求验证' },
+      { path: '/ipd-story-flow', element: IPDStoryFlowPage, title: 'IPD需求十问' },
       { path: '/requirements/:requirementId/verification', element: VerificationListPage, title: '验证清单' },
       { path: '/requirements/:requirementId/verification/create', element: VerificationChecklistForm, title: '创建验证清单', mode: 'create' },
       { path: '/requirements/:requirementId/verification/:checklistId', element: VerificationChecklistForm, title: '查看验证清单', mode: 'view' },

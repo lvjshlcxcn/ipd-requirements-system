@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { TextInsightModal } from '@/components/insights/TextInsightModal'
+import type { Insight } from '@/types/insight'
 
 /**
  * IPD Story Flow 独立页面加载器
@@ -8,9 +10,11 @@ import { useNavigate } from 'react-router-dom'
  */
 export function IPDStoryFlowPage() {
   const navigate = useNavigate()
+  const iframeRef = useRef<HTMLIFrameElement>(null)
   const [height, setHeight] = useState(window.innerHeight - 150)
   const [token, setToken] = useState<string | null>(null)
   const [tenantId, setTenantId] = useState<string | null>(null)
+  const [textInsightModalVisible, setTextInsightModalVisible] = useState(false)
 
   useEffect(() => {
     const handleResize = () => {
@@ -36,12 +40,38 @@ export function IPDStoryFlowPage() {
       if (event.data?.type === 'CLOSE_IPD_STORY_FLOW') {
         // 返回到需求列表页面
         navigate('/requirements')
+      } else if (event.data?.type === 'NAVIGATE_TO_INSIGHTS') {
+        // 导航到 AI 洞察页面
+        navigate('/insights')
+      } else if (event.data?.type === 'OPEN_TEXT_INSIGHT_MODAL') {
+        // 打开文本洞察分析弹窗
+        setTextInsightModalVisible(true)
       }
     }
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
   }, [navigate])
+
+  // 处理 AI 洞察分析完成
+  const handleInsightAnalysisComplete = (insight: Insight) => {
+    console.log('AI 洞察分析完成:', insight)
+
+    // 将结果发送到 iframe
+    const iframe = iframeRef.current
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage(
+        {
+          type: 'INSIGHT_ANALYSIS_RESULT',
+          result: insight.analysis_result,
+        },
+        '*'
+      )
+    }
+
+    // 关闭弹窗
+    setTextInsightModalVisible(false)
+  }
 
   // 构建 iframe URL，附带认证信息
   const iframeSrc = token
@@ -51,6 +81,7 @@ export function IPDStoryFlowPage() {
   return (
     <div style={{ width: '100%', height: '100%' }}>
       <iframe
+        ref={iframeRef}
         src={iframeSrc}
         style={{
           width: '100%',
@@ -59,6 +90,13 @@ export function IPDStoryFlowPage() {
           borderRadius: '8px',
         }}
         title="IPD需求十问 → 用户故事 → INVEST分析"
+      />
+
+      {/* 文本洞察分析弹窗 */}
+      <TextInsightModal
+        visible={textInsightModalVisible}
+        onClose={() => setTextInsightModalVisible(false)}
+        onAnalysisComplete={handleInsightAnalysisComplete}
       />
     </div>
   )
