@@ -8,15 +8,58 @@
     // 初始化
     function init() {
         setTimeout(() => {
-            // 在步骤条同一行的最右边添加历史记录按钮
+            // 在步骤条同一行添加按钮
             const stepsContainer = document.querySelector('.steps');
             if (stepsContainer) {
-                // 修改步骤条容器样式，使其支持右侧元素
+                // 修改步骤条容器样式，使其支持左右两侧元素
                 stepsContainer.style.display = 'flex';
                 stepsContainer.style.justifyContent = 'center';
                 stepsContainer.style.alignItems = 'center';
                 stepsContainer.style.position = 'relative';
 
+                // 左侧：AI 洞察分析按钮
+                const insightBtn = document.createElement('button');
+                insightBtn.className = 'btn';
+                insightBtn.textContent = '📊 AI洞察分析';
+                insightBtn.title = '打开 AI 洞察分析';
+                insightBtn.id = 'step3InsightBtn';
+                insightBtn.style.position = 'absolute';
+                insightBtn.style.left = '20px';
+                insightBtn.style.padding = '6px 12px';
+                insightBtn.style.fontSize = '13px';
+                insightBtn.style.cursor = 'pointer';
+                insightBtn.style.border = '1px solid #d9d9d9';
+                insightBtn.style.borderRadius = '4px';
+                insightBtn.style.background = 'white';
+                insightBtn.style.transition = 'all 0.3s';
+                insightBtn.style.display = 'flex';
+                insightBtn.style.alignItems = 'center';
+                insightBtn.style.gap = '4px';
+                insightBtn.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // 通知父页面打开文本洞察分析弹窗
+                    if (window.parent !== window) {
+                        window.parent.postMessage({ type: 'OPEN_TEXT_INSIGHT_MODAL' }, '*');
+                    }
+                };
+
+                // 添加悬停效果
+                insightBtn.onmouseenter = function() {
+                    this.style.color = '#1890ff';
+                    this.style.borderColor = '#1890ff';
+                    this.style.background = '#e6f7ff';
+                };
+                insightBtn.onmouseleave = function() {
+                    this.style.color = '';
+                    this.style.borderColor = '#d9d9d9';
+                    this.style.background = 'white';
+                };
+
+                stepsContainer.appendChild(insightBtn);
+                console.log('✅ 步骤条左侧 AI 洞察按钮已添加');
+
+                // 右侧：历史记录按钮
                 const historyBtn = document.createElement('button');
                 historyBtn.className = 'btn';
                 historyBtn.textContent = '📋 打开用户故事卡片';
@@ -607,12 +650,71 @@
         deleteWorkflow: deleteWorkflow
     };
     
+    // 监听来自父页面的消息（用于接收 AI 洞察分析结果）
+    window.addEventListener('message', function(event) {
+        // 安全检查：只接受来自同源的消息
+        // 在生产环境中应该检查 event.origin
+        if (event.data && event.data.type === 'INSIGHT_ANALYSIS_RESULT') {
+            console.log('收到 AI 洞察分析结果:', event.data.result);
+            fillIPDFormFromInsight(event.data.result);
+        }
+    });
+
+    // 将 AI 洞察分析结果填充到 IPD 表单
+    function fillIPDFormFromInsight(result) {
+        // 切换到步骤1（IPD 表单）
+        if (typeof switchSection === 'function') {
+            switchSection(1);
+        }
+
+        // 等待 DOM 更新后填充表单
+        setTimeout(function() {
+            // 填充 IPD 十问字段
+            const fieldMappings = [
+                { id: 'q1_who', value: result.q1_who },
+                { id: 'q2_why', value: result.q2_why },
+                { id: 'q3_what_problem', value: result.q3_what_problem },
+                { id: 'q4_current_solution', value: result.q4_current_solution },
+                { id: 'q5_current_issues', value: result.q5_current_issues },
+                { id: 'q6_ideal_solution', value: result.q6_ideal_solution },
+                { id: 'q7_priority', value: result.q7_priority },
+                { id: 'q8_frequency', value: result.q8_frequency },
+                { id: 'q9_expected_value', value: result.q9_impact_scope },
+                { id: 'q10_success_metrics', value: result.q10_value }
+            ];
+
+            fieldMappings.forEach(function(mapping) {
+                const input = document.getElementById(mapping.id);
+                if (input && mapping.value) {
+                    input.value = mapping.value;
+                    // 触发 change 事件，确保数据绑定生效
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+
+            // 更新全局 ipdData
+            if (typeof window.ipdData === 'undefined') {
+                window.ipdData = {};
+            }
+            fieldMappings.forEach(function(mapping) {
+                if (mapping.value) {
+                    window.ipdData[mapping.id] = mapping.value;
+                }
+            });
+
+            // 显示成功消息
+            alert('✅ AI 洞察分析已完成，IPD 表单已自动填充！\n\n请检查并完善信息。');
+
+            console.log('✅ IPD 表单已填充完成');
+        }, 300);
+    }
+
     // 启动
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
     }
-    
+
     console.log('IPD增强功能已加载');
 })();

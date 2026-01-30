@@ -27,6 +27,7 @@ const VerificationListPage = lazy(() => import('@/pages/verifications/Verificati
 const VerificationChecklistForm = lazy(() => import('@/pages/verifications/VerificationChecklistForm'))
 const MainLayout = lazy(() => import('@/shared/components/layout/MainLayout').then(m => ({ default: m.MainLayout })))
 const SettingsPage = lazy(() => import('@/features/settings/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
+const IPDStoryFlowPage = lazy(() => import('@/pages/ipd-story/IPDStoryFlowPage').then(m => ({ default: m.IPDStoryFlowPage })))
 
 function LayoutWrapper() {
   return (
@@ -95,6 +96,11 @@ export function AppRouter() {
           <Route path="/verification" element={
             <Suspense fallback={<PageLoading />}>
               <VerificationOverviewPage />
+            </Suspense>
+          } />
+          <Route path="/ipd-story-flow" element={
+            <Suspense fallback={<PageLoading />}>
+              <IPDStoryFlowPage />
             </Suspense>
           } />
           <Route path="/requirements/:requirementId/verification" element={
