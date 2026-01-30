@@ -131,7 +131,7 @@ async def health_check():
 from app.api.v1 import (
     auth, requirements, notifications, analysis, tenant, import_export,
     verification, appeals, distribution, rtm, attachments, insights,
-    prompt_templates, rice, invest,
+    prompt_templates, rice, invest, ipd_story,
 )
 
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
@@ -149,3 +149,4 @@ app.include_router(insights.router, prefix=settings.API_V1_PREFIX)
 app.include_router(prompt_templates.router, prefix=settings.API_V1_PREFIX)
 app.include_router(rice.router, prefix=settings.API_V1_PREFIX)
 app.include_router(invest.router, prefix=settings.API_V1_PREFIX)
+app.include_router(ipd_story.router, prefix=settings.API_V1_PREFIX)
