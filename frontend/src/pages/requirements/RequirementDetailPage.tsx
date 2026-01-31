@@ -8,6 +8,7 @@ import {
   BarChartOutlined,
   RadarChartOutlined,
   CloseOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons'
 import { requirementService, Requirement } from '@/services/requirement.service'
 import { RequirementHistoryTimeline } from '@/components/requirements/RequirementHistoryTimeline'
@@ -70,6 +71,30 @@ function RequirementDetailPage() {
     })
   }
 
+  const handleAnalysisComplete = async () => {
+    Modal.confirm({
+      title: '确认分析完成',
+      content: '确认该需求已分析完成？此操作将需求状态改为"已分析"，之后可以进行分发操作。',
+      okText: '确认',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const response = await requirementService.updateStatus(parseInt(id!), 'analyzed') as ApiResponse<Requirement>
+          if (response.success) {
+            message.success('需求已标记为已分析')
+            // 刷新需求详情
+            await fetchRequirement()
+          } else {
+            message.error(response.message || '操作失败')
+          }
+        } catch (error: any) {
+          console.error('Update status error:', error)
+          message.error('操作失败')
+        }
+      },
+    })
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('zh-CN')
   }
@@ -112,6 +137,17 @@ function RequirementDetailPage() {
         >
           KANO分类
         </Button>
+        {/* 分析完成按钮 - 只在分析中状态时显示 */}
+        {data.status === 'analyzing' && (
+          <Button
+            type="primary"
+            icon={<CheckCircleOutlined />}
+            onClick={handleAnalysisComplete}
+            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+          >
+            分析完成
+          </Button>
+        )}
         <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>
           删除
         </Button>
