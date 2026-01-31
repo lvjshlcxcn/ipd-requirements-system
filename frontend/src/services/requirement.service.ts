@@ -18,6 +18,7 @@ export interface RequirementListParams {
   page_size?: number
   status?: string
   source_channel?: string
+  target_type?: string
   search?: string
 }
 
@@ -120,5 +121,39 @@ export const requirementService = {
    */
   getAttachmentDownloadUrl: (attachmentId: number) => {
     return `/api/v1/attachments/${attachmentId}/download`
+  },
+
+  /**
+   * Export requirements to Excel
+   */
+  exportRequirements: async (params?: {
+    status?: string
+    target_type?: string
+    search?: string
+  }) => {
+    const baseURL = import.meta.env.VITE_API_URL || '/api/v1'
+    const token = localStorage.getItem('access_token')
+
+    // 构建查询参数
+    const queryParams = new URLSearchParams()
+    if (params?.status) queryParams.append('status', params.status)
+    if (params?.target_type) queryParams.append('target_type', params.target_type)
+    if (params?.search) queryParams.append('search', params.search)
+
+    const url = `${baseURL}/requirements/export${queryParams.toString() ? '?' + queryParams.toString() : ''}`
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-Tenant-ID': '1'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`导出失败: ${response.statusText}`)
+    }
+
+    const blob = await response.blob()
+    return { data: blob }
   },
 }

@@ -28,6 +28,7 @@ const VerificationChecklistForm = lazy(() => import('@/pages/verifications/Verif
 const MainLayout = lazy(() => import('@/shared/components/layout/MainLayout').then(m => ({ default: m.MainLayout })))
 const SettingsPage = lazy(() => import('@/features/settings/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const IPDStoryFlowPage = lazy(() => import('@/pages/ipd-story/IPDStoryFlowPage').then(m => ({ default: m.IPDStoryFlowPage })))
+const DevelopmentPage = lazy(() => import('@/pages/development/DevelopmentPage').then(m => ({ default: m.DevelopmentPage })))
 
 function LayoutWrapper() {
   return (
@@ -86,6 +87,11 @@ export function AppRouter() {
           <Route path="/distribution" element={
             <Suspense fallback={<PageLoading />}>
               <DistributionPage />
+            </Suspense>
+          } />
+          <Route path="/development" element={
+            <Suspense fallback={<PageLoading />}>
+              <DevelopmentPage />
             </Suspense>
           } />
           <Route path="/rtm" element={

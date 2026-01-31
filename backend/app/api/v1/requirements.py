@@ -1,7 +1,8 @@
 """Requirements API endpoints."""
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -36,6 +37,14 @@ def get_requirement_service(db: Session = Depends(get_db)) -> RequirementService
     return RequirementService(db)
 
 
+def get_tenant_id(current_user: Optional[User]) -> int:
+    """获取租户 ID，如果用户未认证则使用默认值."""
+    if current_user is None:
+        # 未认证用户使用默认租户
+        return 1
+    return current_user.tenant_id
+
+
 # ========================================================================
 # CRUD Endpoints
 # ========================================================================
@@ -46,6 +55,7 @@ async def list_requirements(
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     status: Optional[str] = Query(None, description="Filter by status"),
     source_channel: Optional[str] = Query(None, description="Filter by source channel"),
+    target_type: Optional[str] = Query(None, description="Filter by target type (sp/bp/charter/pcr)"),
     search: Optional[str] = Query(None, description="Search in title and number"),
     sort_by: str = Query("created_at", description="Sort field"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order"),
@@ -58,6 +68,7 @@ async def list_requirements(
     - **page_size**: Number of items per page (max 100)
     - **status**: Filter by requirement status
     - **source_channel**: Filter by source channel
+    - **target_type**: Filter by target type (sp/bp/charter/pcr)
     - **search**: Search in title and requirement number
     - **sort_by**: Field to sort by
     - **sort_order**: Sort order (asc or desc)
@@ -67,6 +78,7 @@ async def list_requirements(
         page_size=page_size,
         status=status,
         source_channel=source_channel,
+        target_type=target_type,
         search=search,
         sort_by=sort_by,
         sort_order=sort_order,
@@ -111,6 +123,45 @@ async def create_requirement(
         success=True,
         message="需求创建成功",
         data=requirement_data,
+    )
+
+
+@router.get("/export")
+def export_requirements(
+    status: Optional[str] = Query("distributed", description="需求状态筛选"),
+    target_type: Optional[str] = Query("charter", description="目标类型筛选 (sp/bp/charter/pcr)"),
+    search: Optional[str] = Query(None, description="搜索关键词"),
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_sync),
+):
+    """
+    导出需求开发列表为Excel.
+
+    - **status**: 需求状态（默认 distributed）
+    - **target_type**: 目标类型（默认 charter）
+    - **search**: 搜索关键词（可选）
+
+    返回Excel文件的二进制数据，可直接下载。
+    """
+    # 获取租户ID
+    tenant_id = get_tenant_id(current_user)
+
+    # 生成Excel数据
+    excel_data = RequirementService.export_to_excel(
+        db=db,
+        tenant_id=tenant_id,
+        status=status,
+        target_type=target_type,
+        search=search
+    )
+
+    # 返回文件响应
+    return Response(
+        content=excel_data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": 'attachment; filename="requirements_development.xlsx"'
+        }
     )
 
 
@@ -189,7 +240,7 @@ async def delete_requirement(
 @router.post("/{requirement_id}/status", response_model=RequirementDetailResponse)
 async def update_requirement_status(
     requirement_id: int,
-    status: str,
+    status: str = Body(..., embed=True),
     current_user: Optional[User] = Depends(get_current_user_sync),
     service: RequirementService = Depends(get_requirement_service),
 ):

@@ -110,6 +110,7 @@ class RequirementRepository:
         page_size: int = 20,
         status: Optional[str] = None,
         source_channel: Optional[str] = None,
+        target_type: Optional[str] = None,
         search: Optional[str] = None,
         sort_by: str = "created_at",
         sort_order: str = "desc",
@@ -122,6 +123,7 @@ class RequirementRepository:
             page_size: Number of items per page
             status: Filter by status
             source_channel: Filter by source channel
+            target_type: Filter by target type (sp/bp/charter/pcr)
             search: Search in title and requirement_no
             sort_by: Sort field
             sort_order: Sort order (asc or desc)
@@ -140,6 +142,9 @@ class RequirementRepository:
 
         if source_channel:
             conditions.append(Requirement.source_channel == source_channel)
+
+        if target_type:
+            conditions.append(Requirement.target_type == target_type)
 
         if search:
             search_pattern = f"%{search}%"
