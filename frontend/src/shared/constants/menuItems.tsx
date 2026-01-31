@@ -6,9 +6,9 @@ export const MENU_ITEMS: MenuProps['items'] = [
   { key: '/requirements', icon: <FileTextOutlined />, label: '需求管理' },
   { key: '/ipd-story-flow', icon: <QuestionCircleOutlined />, label: 'IPD需求十问' },
   { key: '/insights', icon: <BulbOutlined />, label: 'AI洞察历史记录' },
-  { key: '/verification', icon: <CheckCircleOutlined />, label: '需求验证' },
   { key: '/analytics', icon: <BarChartOutlined />, label: '需求分析' },
   { key: '/distribution', icon: <SendOutlined />, label: '需求分发' },
   { key: '/rtm', icon: <PartitionOutlined />, label: '需求跟踪' },
+  { key: '/verification', icon: <CheckCircleOutlined />, label: '需求验证' },
   { key: '/settings', icon: <SettingOutlined />, label: '配置' },
 ]
