@@ -1,5 +1,5 @@
 /** 需求验证列表页面 */
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button,
@@ -10,7 +10,6 @@ import {
   Typography,
   Empty,
   Spin,
-  message,
   Tabs,
   Statistic,
   Row,
@@ -23,7 +22,8 @@ import {
   ClockCircleOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
-import verificationService, { VerificationChecklist, VerificationSummary } from '../../services/verification.service';
+import { useQuery } from '@tanstack/react-query';
+import verificationService from '../../services/verification.service';
 
 const { Title, Text } = Typography;
 
@@ -59,36 +59,22 @@ const RESULT_TEXT_MAP: Record<string, string> = {
 const VerificationListPage: React.FC = () => {
   const { requirementId } = useParams<{ requirementId: string }>();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = React.useState('all');
 
-  const [loading, setLoading] = useState(true);
-  const [checklists, setChecklists] = useState<VerificationChecklist[]>([]);
-  const [summary, setSummary] = useState<VerificationSummary | null>(null);
-  const [activeTab, setActiveTab] = useState('all');
+  // 使用 useQuery 获取验证清单和摘要
+  const { data: checklists = [], isLoading: checklistsLoading } = useQuery({
+    queryKey: ['verifications', requirementId],
+    queryFn: () => verificationService.getVerifications(parseInt(requirementId!)),
+    enabled: !!requirementId,
+  });
 
-  useEffect(() => {
-    loadVerifications();
-  }, [requirementId]);
+  const { data: summary, isLoading: summaryLoading } = useQuery({
+    queryKey: ['verificationSummary', requirementId],
+    queryFn: () => verificationService.getVerificationSummary(parseInt(requirementId!)),
+    enabled: !!requirementId,
+  });
 
-  /** 加载验证清单 */
-  const loadVerifications = async () => {
-    if (!requirementId) return;
-
-    try {
-      setLoading(true);
-      const [checklistsData, summaryData] = await Promise.all([
-        verificationService.getVerifications(parseInt(requirementId)),
-        verificationService.getVerificationSummary(parseInt(requirementId)),
-      ]);
-      setChecklists(checklistsData || []);
-      setSummary(summaryData);
-    } catch (error) {
-      message.error('加载验证清单失败');
-      console.error(error);
-      setChecklists([]); // 确保出错时设置为空数组
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loading = checklistsLoading || summaryLoading;
 
   /** 创建新的验证清单 */
   const handleCreate = () => {

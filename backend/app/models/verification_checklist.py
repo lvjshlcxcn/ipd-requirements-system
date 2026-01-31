@@ -49,7 +49,8 @@ class VerificationChecklist(Base, TimestampMixin, TenantMixin):
     checklist_name: Mapped[str] = mapped_column(String(100), nullable=False)
 
     # Checklist items (JSONB): Array of {id, item, checked, notes}
-    checklist_items: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    # Note: JSONB can be dict or list, use Any to support both
+    checklist_items: Mapped[list] = mapped_column(JSONB, nullable=False)
 
     # Verification result
     result: Mapped[str] = mapped_column(ChecklistResult, default="not_started")

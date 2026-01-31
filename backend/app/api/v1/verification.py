@@ -1,6 +1,7 @@
 """Verification API endpoints."""
 from typing import List, Optional
 from datetime import datetime
+import json
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 
@@ -21,14 +22,23 @@ from typing import Optional
 
 def serialize_checklist(checklist) -> dict:
     """Serialize verification checklist to dict for JSON response."""
+    # Parse JSON strings back to Python objects for JSONB fields
+    checklist_items = checklist.checklist_items
+    if isinstance(checklist_items, str):
+        checklist_items = json.loads(checklist_items)
+
+    evidence_attachments = checklist.evidence_attachments
+    if evidence_attachments and isinstance(evidence_attachments, str):
+        evidence_attachments = json.loads(evidence_attachments)
+
     return {
         "id": checklist.id,
         "requirement_id": checklist.requirement_id,
         "verification_type": checklist.verification_type,
         "checklist_name": checklist.checklist_name,
-        "checklist_items": checklist.checklist_items,  # JSONB field
+        "checklist_items": checklist_items,  # Parsed from JSON string
         "result": checklist.result,
-        "evidence_attachments": checklist.evidence_attachments,
+        "evidence_attachments": evidence_attachments,
         "customer_feedback": checklist.customer_feedback,
         "issues_found": checklist.issues_found,
         "verified_by": checklist.verified_by,
@@ -41,7 +51,7 @@ def serialize_checklist(checklist) -> dict:
 router = APIRouter(prefix="/requirements/{requirement_id}/verification", tags=["verification"])
 
 
-@router.get("", response_model=List[VerificationChecklistResponse])
+@router.get("")
 async def get_verifications(
     requirement_id: int,
     verification_type: Optional[str] = Query(None),
@@ -58,10 +68,14 @@ async def get_verifications(
 
     result = await db.execute(query)
     checklists = list(result.scalars().all())
-    return [serialize_checklist(c) for c in checklists]
+
+    return {
+        "success": True,
+        "data": [serialize_checklist(c) for c in checklists]
+    }
 
 
-@router.post("", response_model=VerificationChecklistResponse)
+@router.post("")
 async def create_checklist(
     requirement_id: int,
     checklist_data: VerificationChecklistCreate,
@@ -72,23 +86,35 @@ async def create_checklist(
     repo = BaseRepository(VerificationChecklist, db)
     tenant_id = get_current_tenant() or (current_user.tenant_id if current_user else 1)
 
-    # Convert Pydantic models to dicts for JSON serialization
+    # Convert Pydantic models to dicts, then to JSON string for JSONB
     checklist_items_dict = [item.model_dump() for item in checklist_data.checklist_items]
+    checklist_items_json = json.dumps(checklist_items_dict)
 
-    checklist = await repo.create(
-        requirement_id=requirement_id,
-        tenant_id=tenant_id,
-        verification_type=checklist_data.verification_type,
-        checklist_name=checklist_data.checklist_name,
-        checklist_items=checklist_items_dict,
-        result="not_started",
-        verified_by=None,
-    )
-    # Serialize the checklist object properly
-    return serialize_checklist(checklist)
+    try:
+        checklist = await repo.create(
+            requirement_id=requirement_id,
+            tenant_id=tenant_id,
+            verification_type=checklist_data.verification_type,
+            checklist_name=checklist_data.checklist_name,
+            checklist_items=checklist_items_json,
+            result="not_started",
+            verified_by=None,
+        )
+
+        # 显式提交事务
+        await db.commit()
+
+        # Serialize the checklist object properly
+        return {
+            "success": True,
+            "data": serialize_checklist(checklist)
+        }
+    except Exception as e:
+        await db.rollback()
+        raise
 
 
-@router.put("/{checklist_id}", response_model=VerificationChecklistResponse)
+@router.put("/{checklist_id}")
 async def update_checklist(
     requirement_id: int,
     checklist_id: int,
@@ -106,19 +132,23 @@ async def update_checklist(
             detail="Checklist not found",
         )
 
-    # Convert Pydantic models to dicts for JSON serialization
+    # Convert Pydantic models to dicts, then to JSON string for JSONB
     checklist_items_dict = [item.model_dump() for item in checklist_data.checklist_items]
+    checklist_items_json = json.dumps(checklist_items_dict)
 
-    updated = await repo.update(checklist_id, checklist_items=checklist_items_dict)
+    updated = await repo.update(checklist_id, checklist_items=checklist_items_json)
     if updated:
-        return serialize_checklist(updated)
+        return {
+            "success": True,
+            "data": serialize_checklist(updated)
+        }
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Checklist not found",
     )
 
 
-@router.post("/{checklist_id}/submit", response_model=VerificationChecklistResponse)
+@router.post("/{checklist_id}/submit")
 async def submit_checklist(
     requirement_id: int,
     checklist_id: int,
@@ -145,14 +175,17 @@ async def submit_checklist(
         verified_by=current_user.id if current_user else None,
     )
     if updated:
-        return serialize_checklist(updated)
+        return {
+            "success": True,
+            "data": serialize_checklist(updated)
+        }
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Checklist not found",
     )
 
 
-@router.get("/summary", response_model=VerificationSummary)
+@router.get("/summary")
 async def get_verification_summary(
     requirement_id: int,
     db: AsyncSession = Depends(get_db),
@@ -172,7 +205,7 @@ async def get_verification_summary(
     in_progress = sum(1 for c in checklists if c.result == "in_progress")
     not_started = sum(1 for c in checklists if c.result == "not_started")
 
-    return VerificationSummary(
+    summary = VerificationSummary(
         requirement_id=requirement_id,
         total_checklists=total,
         passed=passed,
@@ -180,3 +213,8 @@ async def get_verification_summary(
         in_progress=in_progress,
         not_started=not_started,
     )
+
+    return {
+        "success": True,
+        "data": summary
+    }

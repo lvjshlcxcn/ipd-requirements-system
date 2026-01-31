@@ -59,8 +59,10 @@ class VerificationService {
     verificationType?: string
   ): Promise<VerificationChecklist[]> {
     const params = verificationType ? { verification_type: verificationType } : {};
-    const response = await api.get(`/requirements/${requirementId}/verification`, { params });
-    return response.data;
+    const response: any = await api.get(`/requirements/${requirementId}/verification`, { params });
+    // 后端返回 {success: true, data: [...]}, API拦截器返回 response.data
+    // 所以 response 是 {success: true, data: [...]}
+    return response.data || [];
   }
 
   /**
@@ -70,7 +72,7 @@ class VerificationService {
     requirementId: number,
     data: VerificationChecklistCreate
   ): Promise<VerificationChecklist> {
-    const response = await api.post(`/requirements/${requirementId}/verification`, data);
+    const response: any = await api.post(`/requirements/${requirementId}/verification`, data);
     return response.data;
   }
 
@@ -82,7 +84,7 @@ class VerificationService {
     checklistId: number,
     data: VerificationChecklistUpdate
   ): Promise<VerificationChecklist> {
-    const response = await api.put(
+    const response: any = await api.put(
       `/requirements/${requirementId}/verification/${checklistId}`,
       data
     );
@@ -97,7 +99,7 @@ class VerificationService {
     checklistId: number,
     data: VerificationChecklistSubmit
   ): Promise<VerificationChecklist> {
-    const response = await api.post(
+    const response: any = await api.post(
       `/requirements/${requirementId}/verification/${checklistId}/submit`,
       data
     );
@@ -108,7 +110,7 @@ class VerificationService {
    * 获取验证摘要
    */
   async getVerificationSummary(requirementId: number): Promise<VerificationSummary> {
-    const response = await api.get(`/requirements/${requirementId}/verification/summary`);
+    const response: any = await api.get(`/requirements/${requirementId}/verification/summary`);
     return response.data;
   }
 }

@@ -27,6 +27,7 @@ import {
   PlusOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import verificationService, {
   VerificationChecklist,
   VerificationChecklistCreate,
@@ -48,6 +49,7 @@ const VerificationChecklistForm: React.FC<VerificationChecklistFormProps> = ({
 }) => {
   const { requirementId } = useParams<{ requirementId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [form] = Form.useForm();
 
   const [loading, setLoading] = useState(false);
@@ -55,6 +57,44 @@ const VerificationChecklistForm: React.FC<VerificationChecklistFormProps> = ({
   const [checklist, setChecklist] = useState<VerificationChecklist | null>(null);
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
   const [submitModalVisible, setSubmitModalVisible] = useState(false);
+
+  // 创建清单的 mutation
+  const createMutation = useMutation({
+    mutationFn: (data: VerificationChecklistCreate) =>
+      verificationService.createChecklist(parseInt(requirementId!), data),
+    onSuccess: () => {
+      message.success('创建成功');
+      // 使验证清单查询缓存失效，触发列表页面重新获取数据
+      queryClient.invalidateQueries({ queryKey: ['verifications', requirementId] });
+      queryClient.invalidateQueries({ queryKey: ['verificationSummary', requirementId] });
+      navigate(`/requirements/${requirementId}/verification`);
+    },
+    onError: (error) => {
+      message.error('保存失败');
+      console.error(error);
+    },
+  });
+
+  // 更新清单的 mutation
+  const updateMutation = useMutation({
+    mutationFn: (data: { checklistItems: ChecklistItem[] }) =>
+      verificationService.updateChecklist(
+        parseInt(requirementId!),
+        parseInt(checklistId!),
+        { checklist_items: data.checklistItems }
+      ),
+    onSuccess: () => {
+      message.success('保存成功');
+      // 使验证清单查询缓存失效
+      queryClient.invalidateQueries({ queryKey: ['verifications', requirementId] });
+      queryClient.invalidateQueries({ queryKey: ['verificationSummary', requirementId] });
+      navigate(`/requirements/${requirementId}/verification`);
+    },
+    onError: (error) => {
+      message.error('保存失败');
+      console.error(error);
+    },
+  });
 
   useEffect(() => {
     if (mode === 'edit' || mode === 'view') {
@@ -132,26 +172,14 @@ const VerificationChecklistForm: React.FC<VerificationChecklistFormProps> = ({
           checklist_name: values.checklist_name,
           checklist_items: checklistItems,
         };
-        await verificationService.createChecklist(
-          parseInt(requirementId!),
-          data
-        );
-        message.success('创建成功');
+        createMutation.mutate(data);
       } else if (mode === 'edit') {
         // 更新清单
-        await verificationService.updateChecklist(
-          parseInt(requirementId!),
-          parseInt(checklistId!),
-          { checklist_items: checklistItems }
-        );
-        message.success('保存成功');
+        updateMutation.mutate({ checklistItems });
       }
-
-      navigate(`/requirements/${requirementId}/verification`);
     } catch (error) {
       message.error('保存失败');
       console.error(error);
-    } finally {
       setSubmitting(false);
     }
   };
@@ -174,6 +202,9 @@ const VerificationChecklistForm: React.FC<VerificationChecklistFormProps> = ({
 
       message.success('提交成功');
       setSubmitModalVisible(false);
+      // 使验证清单查询缓存失效
+      queryClient.invalidateQueries({ queryKey: ['verifications', requirementId] });
+      queryClient.invalidateQueries({ queryKey: ['verificationSummary', requirementId] });
       navigate(`/requirements/${requirementId}/verification`);
     } catch (error) {
       message.error('提交失败');
