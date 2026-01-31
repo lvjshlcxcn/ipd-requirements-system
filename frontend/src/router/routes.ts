@@ -30,7 +30,7 @@ export const routeConfigs: RouteConfig[] = [
     requireAuth: true,
     children: [
       { path: '/dashboard', element: DashboardPage, title: '仪表盘' },
-      { path: '/requirements', element: RequirementsListPage, title: '需求管理' },
+      { path: '/requirements', element: RequirementsListPage, title: '需求输入' },
       { path: '/requirements/new', element: RequirementEditPage, title: '新建需求' },
       { path: '/requirements/edit/:id', element: RequirementEditPage, title: '编辑需求' },
       { path: '/insights', element: InsightsListPage, title: 'AI洞察历史记录' },
