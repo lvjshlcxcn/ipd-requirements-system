@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, Table, Button, Space, Form, Select, Input, message, Modal, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { SendOutlined } from '@ant-design/icons'
+import { SendOutlined, ReloadOutlined } from '@ant-design/icons'
 import api from '@/services/api'
 
 export function DistributionPage() {
@@ -14,35 +14,6 @@ export function DistributionPage() {
   const [targetId, setTargetId] = useState<string>('')
   const [numericTargetId, setNumericTargetId] = useState<number>(0)
   const [form] = Form.useForm()
-
-  useEffect(() => {
-    fetchRequirements()
-  }, [])
-
-  // Auto-generate target ID when target type changes
-  useEffect(() => {
-    if (targetType) {
-      generateNextTargetId(targetType)
-    } else {
-      setTargetId('')
-      setNumericTargetId(0)
-    }
-  }, [targetType])
-
-  const generateNextTargetId = async (type: string) => {
-    try {
-      const response = await api.get('/distribution/next-target-id', {
-        params: { target_type: type },
-      })
-      if (response?.data?.formatted_id) {
-        setTargetId(response.data.formatted_id)
-        setNumericTargetId(response.data.next_numeric_id)
-      }
-    } catch (error) {
-      console.error('Failed to generate target ID:', error)
-      message.error('生成目标ID失败')
-    }
-  }
 
   const fetchRequirements = async () => {
     setLoading(true)
@@ -75,6 +46,36 @@ export function DistributionPage() {
       setLoading(false)
     }
   }
+
+  const generateNextTargetId = async (type: string) => {
+    try {
+      const response = await api.get('/distribution/next-target-id', {
+        params: { target_type: type },
+      })
+      if (response?.data?.formatted_id) {
+        setTargetId(response.data.formatted_id)
+        setNumericTargetId(response.data.next_numeric_id)
+      }
+    } catch (error) {
+      console.error('Failed to generate target ID:', error)
+      message.error('生成目标ID失败')
+    }
+  }
+
+  // 初始化加载数据
+  useEffect(() => {
+    fetchRequirements()
+  }, [])
+
+  // Auto-generate target ID when target type changes
+  useEffect(() => {
+    if (targetType) {
+      generateNextTargetId(targetType)
+    } else {
+      setTargetId('')
+      setNumericTargetId(0)
+    }
+  }, [targetType])
 
   const handleDistribute = async () => {
     if (selectedRowKeys.length === 0) {
