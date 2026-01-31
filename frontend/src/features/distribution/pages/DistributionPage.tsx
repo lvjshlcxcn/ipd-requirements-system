@@ -225,7 +225,7 @@ export function DistributionPage() {
         const labelMap: Record<string, string> = {
           sp: '系统计划',
           bp: '商业计划',
-          charter: '项目章程',
+          charter: '进入开发',
           pcr: '变更请求',
         }
         return labelMap[type] || type
@@ -276,7 +276,7 @@ export function DistributionPage() {
               >
                 <Select.Option value="sp">系统计划 (SP)</Select.Option>
                 <Select.Option value="bp">商业计划 (BP)</Select.Option>
-                <Select.Option value="charter">项目章程</Select.Option>
+                <Select.Option value="charter">进入开发</Select.Option>
                 <Select.Option value="pcr">变更请求 (PCR)</Select.Option>
               </Select>
             </Form.Item>
