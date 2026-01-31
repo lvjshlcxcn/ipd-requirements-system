@@ -339,6 +339,14 @@ async def auth_headers(test_user: User) -> dict:
     return {"Authorization": f"Bearer {access_token}"}
 
 
+@pytest.fixture(scope="function")
+def auth_headers_sync(test_user_sync: User) -> dict:
+    """Get authentication headers (sync version)."""
+    token_data = {"sub": str(test_user_sync.id), "username": test_user_sync.username}
+    access_token = create_access_token(token_data)
+    return {"Authorization": f"Bearer {access_token}"}
+
+
 @pytest.fixture
 def test_requirement_data():
     """Sample requirement data for testing."""
@@ -472,7 +480,7 @@ async def test_prompt_template(async_db_session: AsyncSession, test_user: User, 
 # ============ 角色特定 Fixtures ============
 
 @pytest.fixture(scope="function")
-def test_admin_user(db_session: Session, test_tenant: Tenant) -> User:
+def test_admin_user(db_session: Session, test_tenant_sync: Tenant) -> User:
     """Create admin user."""
     user = User(
         username="adminuser",
@@ -482,7 +490,7 @@ def test_admin_user(db_session: Session, test_tenant: Tenant) -> User:
         role="admin",
         department="Engineering",
         is_active=True,
-        tenant_id=test_tenant.id,
+        tenant_id=test_tenant_sync.id,
     )
     db_session.add(user)
     db_session.commit()
@@ -491,7 +499,7 @@ def test_admin_user(db_session: Session, test_tenant: Tenant) -> User:
 
 
 @pytest.fixture(scope="function")
-def test_product_manager(db_session: Session, test_tenant: Tenant) -> User:
+def test_product_manager(db_session: Session, test_tenant_sync: Tenant) -> User:
     """Create product manager user."""
     user = User(
         username="productmanager",
@@ -501,7 +509,7 @@ def test_product_manager(db_session: Session, test_tenant: Tenant) -> User:
         role="product_manager",
         department="Product",
         is_active=True,
-        tenant_id=test_tenant.id,
+        tenant_id=test_tenant_sync.id,
     )
     db_session.add(user)
     db_session.commit()
@@ -509,10 +517,33 @@ def test_product_manager(db_session: Session, test_tenant: Tenant) -> User:
     return user
 
 
+@pytest.fixture(scope="function")
+def simple_client(db_session: Session, test_tenant_sync: Tenant):
+    """Create simple test client without async wrapper."""
+    from fastapi.testclient import TestClient
+
+    # Dependency override for database session
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+
+    from app.db.session import get_db
+    app.dependency_overrides[get_db] = override_get_db
+
+    # Create test client
+    test_client = TestClient(app)
+
+    yield test_client
+
+    app.dependency_overrides.clear()
+
+
 # ============ 工厂模式 Fixtures ============
 
 @pytest.fixture
-def requirement_factory(db_session: Session, test_user: User, test_tenant: Tenant):
+def requirement_factory(db_session: Session, test_user_sync: User, test_tenant_sync: Tenant):
     """Factory for creating requirements with flexible parameters."""
     def _create(**kwargs):
         data = {
@@ -521,8 +552,8 @@ def requirement_factory(db_session: Session, test_user: User, test_tenant: Tenan
             "description": "Auto generated requirement",
             "source_channel": "customer",
             "status": "collected",
-            "tenant_id": test_tenant.id,
-            "created_by": test_user.id,
+            "tenant_id": test_tenant_sync.id,
+            "created_by": test_user_sync.id,
             **kwargs
         }
         req = Requirement(**data)
@@ -534,7 +565,7 @@ def requirement_factory(db_session: Session, test_user: User, test_tenant: Tenan
 
 
 @pytest.fixture
-def insight_factory(db_session: Session, test_user: User, test_tenant: Tenant):
+def insight_factory(db_session: Session, test_user_sync: User, test_tenant_sync: Tenant):
     """Factory for creating insights with flexible parameters."""
     def _create(**kwargs):
         data = {
@@ -548,8 +579,8 @@ def insight_factory(db_session: Session, test_user: User, test_tenant: Tenant):
                 "q2_why": "Test reason",
                 "q3_what_problem": "Test problem",
             },
-            "tenant_id": test_tenant.id,
-            "created_by": test_user.id,
+            "tenant_id": test_tenant_sync.id,
+            "created_by": test_user_sync.id,
             **kwargs
         }
         insight = InsightAnalysis(**data)
@@ -558,3 +589,40 @@ def insight_factory(db_session: Session, test_user: User, test_tenant: Tenant):
         db_session.refresh(insight)
         return insight
     return _create
+
+
+# ============ Mock Fixtures ============
+
+@pytest.fixture
+def mock_llm_service(mocker):
+    """Mock LLM service for testing."""
+    mock_response = {
+        "q1_who": "Product Manager",
+        "q2_why": "Need to manage requirements",
+        "q3_what_problem": "Excel management is chaotic",
+        "q4_current_solution": "Using Excel spreadsheets",
+        "q5_current_issues": "Hard to track changes",
+        "q6_ideal_solution": "A dedicated requirement management system",
+        "q7_priority": "high",
+        "q8_frequency": "daily",
+        "q9_impact_scope": "Entire product team",
+        "q10_value": "Improve efficiency by 50%"
+    }
+    return mocker.patch('app.services.insight_service.call_openai_api', return_value=mock_response)
+
+
+@pytest.fixture
+def mock_llm_service_error(mocker):
+    """Mock LLM service that raises an error."""
+    return mocker.patch('app.services.insight_service.call_openai_api',
+                       side_effect=Exception("API Error"))
+
+
+@pytest.fixture
+def mock_llm_service_quick_mode(mocker):
+    """Mock LLM service for quick mode."""
+    mock_response = {
+        "summary": "Quick analysis summary",
+        "key_points": ["Point 1", "Point 2"]
+    }
+    return mocker.patch('app.services.insight_service.call_openai_api', return_value=mock_response)
