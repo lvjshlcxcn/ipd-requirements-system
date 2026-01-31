@@ -396,7 +396,7 @@ class RequirementService:
             'F': 15,  # Charter ID
             'G': 12,  # 预估工期
             'H': 18,  # 分发时间
-            'I': 40,  # 需求描述
+            'I': 80,  # 需求描述（加宽以显示完整内容）
         }
 
         for col, width in column_widths.items():
@@ -469,8 +469,8 @@ class RequirementService:
             # 分发时间
             updated_text = req.updated_at.strftime('%Y-%m-%d %H:%M') if req.updated_at else '-'
 
-            # 需求描述（截取100字符）
-            desc_text = (req.description[:100] + '...') if req.description and len(req.description) > 100 else (req.description or '-')
+            # 需求描述（导出完整内容）
+            desc_text = req.description or '-'
 
             ws.append([
                 req.requirement_no or '',

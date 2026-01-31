@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Button, Space, Input, message, Card } from 'antd'
+import { Table, Button, Space, Input, message, Card, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { FileTextOutlined, EyeOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
 import { requirementService } from '@/services/requirement.service'
@@ -98,6 +98,22 @@ export function DevelopmentPage() {
         key: 'updated_at',
         width: 120,
         render: (date: string) => new Date(date).toLocaleDateString('zh-CN'),
+      },
+      {
+        title: '需求描述',
+        dataIndex: 'description',
+        key: 'description',
+        width: 300,
+        ellipsis: true,
+        render: (desc: string) => {
+          if (!desc) return <span style={{ color: '#999' }}>-</span>
+          const displayText = desc.length > 80 ? desc.substring(0, 80) + '...' : desc
+          return (
+            <Tooltip title={desc} placement="topLeft">
+              <span>{displayText}</span>
+            </Tooltip>
+          )
+        },
       },
       {
         title: '操作',
@@ -241,7 +257,7 @@ export function DevelopmentPage() {
           }}
           onChange={handleTableChange}
           bordered
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1500 }}
           rowKey="key"
         />
       </Card>
