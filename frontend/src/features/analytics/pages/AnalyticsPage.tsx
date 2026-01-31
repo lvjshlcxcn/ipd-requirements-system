@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Tabs, Card, Button, Space } from 'antd'
+import { Tabs, Card, Button, Space, message, Modal } from 'antd'
+import { CheckCircleOutlined } from '@ant-design/icons'
 const { TabPane } = Tabs
 import api from '@/services/api'
 import { RequirementSelector } from '../components/RequirementSelector'
 import { APPEALSForm } from '../components/APPEALSForm'
 import { RICEForm } from '../components/RICEForm'
 import { INVESTForm } from '../components/INVESTForm'
+import { requirementService } from '@/services/requirement.service'
+import type { ApiResponse } from '@/services/api'
 
 /**
  * 需求分析页面
@@ -14,21 +17,73 @@ import { INVESTForm } from '../components/INVESTForm'
 export function AnalyticsPage() {
   const [requirements, setRequirements] = useState<any[]>([])
   const [selectedReqId, setSelectedReqId] = useState<number | null>(null)
+  const [selectedRequirement, setSelectedRequirement] = useState<any>(null)
   const [activeTab, setActiveTab] = useState('appeals')
 
-  // 加载需求列表
+  // 加载需求列表（排除已分析完成的需求）
   useEffect(() => {
     async function fetchRequirements() {
       try {
         const response = await api.get('/requirements')
         const items = response?.data?.items || []
-        setRequirements(items)
+        // 过滤掉状态为 analyzed 的需求，因为它们已经分析完成
+        const filteredItems = items.filter((req: any) => req.status !== 'analyzed')
+        setRequirements(filteredItems)
       } catch (error) {
         console.error('Failed to fetch requirements:', error)
       }
     }
     fetchRequirements()
   }, [])
+
+  // 当选中需求时，加载需求详情以获取状态
+  useEffect(() => {
+    async function fetchRequirementDetail() {
+      if (!selectedReqId) {
+        setSelectedRequirement(null)
+        return
+      }
+      try {
+        const response = await requirementService.getRequirement(selectedReqId) as ApiResponse<any>
+        if (response.success && response.data) {
+          setSelectedRequirement(response.data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch requirement detail:', error)
+      }
+    }
+    fetchRequirementDetail()
+  }, [selectedReqId])
+
+  // 处理分析完成
+  const handleAnalysisComplete = async () => {
+    if (!selectedReqId) return
+
+    Modal.confirm({
+      title: '确认分析完成',
+      content: '确认该需求已分析完成？此操作将需求状态改为"已分析"，之后可以进行分发操作。',
+      okText: '确认',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const response = await requirementService.updateStatus(selectedReqId, 'analyzed') as ApiResponse<any>
+          if (response.success) {
+            message.success('需求已标记为已分析')
+            // 从需求列表中移除已分析的需求
+            setRequirements(prev => prev.filter(req => req.id !== selectedReqId))
+            // 清空选中状态
+            setSelectedReqId(null)
+            setSelectedRequirement(null)
+          } else {
+            message.error(response.message || '操作失败')
+          }
+        } catch (error: any) {
+          console.error('Update status error:', error)
+          message.error('操作失败')
+        }
+      },
+    })
+  }
 
   console.log('AnalyticsPage 渲染:', {
     selectedReqId,
@@ -44,6 +99,21 @@ export function AnalyticsPage() {
 
       {/* 共享的需求选择器 */}
       <RequirementSelector requirements={requirements} selectedReqId={selectedReqId} onSelectReq={setSelectedReqId} />
+
+      {/* 分析完成按钮 - 只在选择了需求且状态为"分析中"时显示 */}
+      {selectedReqId && selectedRequirement?.status === 'analyzing' && (
+        <div style={{ marginBottom: 16 }}>
+          <Button
+            type="primary"
+            size="large"
+            icon={<CheckCircleOutlined />}
+            onClick={handleAnalysisComplete}
+            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', fontSize: 16, height: 40 }}
+          >
+            分析完成
+          </Button>
+        </div>
+      )}
 
       {/* APPEALS 和 RICE 标签页 */}
       {selectedReqId && (
