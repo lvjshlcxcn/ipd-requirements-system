@@ -100,25 +100,10 @@ export function AnalyticsPage() {
       {/* 共享的需求选择器 */}
       <RequirementSelector requirements={requirements} selectedReqId={selectedReqId} onSelectReq={setSelectedReqId} />
 
-      {/* 分析完成按钮 - 只在选择了需求且状态为"分析中"时显示 */}
-      {selectedReqId && selectedRequirement?.status === 'analyzing' && (
-        <div style={{ marginBottom: 16 }}>
-          <Button
-            type="primary"
-            size="large"
-            icon={<CheckCircleOutlined />}
-            onClick={handleAnalysisComplete}
-            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', fontSize: 16, height: 40 }}
-          >
-            分析完成
-          </Button>
-        </div>
-      )}
-
       {/* APPEALS 和 RICE 标签页 */}
       {selectedReqId && (
         <>
-          {/* 临时显示三个按钮来切换 */}
+          {/* 切换按钮组 */}
           <Space style={{ marginBottom: 16 }}>
             <Button
               type={activeTab === 'appeals' ? 'primary' : 'default'}
@@ -141,6 +126,19 @@ export function AnalyticsPage() {
             >
               INVEST分析
             </Button>
+
+            {/* 分析完成按钮 - 只在状态为"分析中"时显示 */}
+            {selectedRequirement?.status === 'analyzing' && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<CheckCircleOutlined />}
+                onClick={handleAnalysisComplete}
+                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', fontSize: 16, height: 40 }}
+              >
+                分析完成
+              </Button>
+            )}
           </Space>
 
           {activeTab === 'appeals' && <APPEALSForm requirementId={selectedReqId} />}
