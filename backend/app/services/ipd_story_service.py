@@ -422,12 +422,29 @@ class IPDStoryService:
         limit: int = 10,
         search: str = None,
         order_by_invest: bool = False,
-    ) -> List[IPDStoryFlowResponse]:
-        """列出工作流 - 查询所有用户故事，支持搜索和按INVEST分数排序"""
+    ) -> tuple[int, List[IPDStoryFlowResponse]]:
+        """列出工作流 - 查询所有用户故事，支持搜索和按INVEST分数排序
+
+        返回: (总记录数, 工作流列表)
+        """
         from sqlalchemy import func
         from sqlalchemy.orm import selectinload
 
         if order_by_invest:
+            # 使用 LEFT JOIN 连接 INVEST 分析表，按分数降序排序
+
+            # 先获取总数（在应用skip/limit之前）
+            count_query = select(func.count(UserStoryModel.id)).where(UserStoryModel.tenant_id == tenant_id)
+            if search:
+                search_pattern = f"%{search}%"
+                count_query = count_query.where(
+                    (UserStoryModel.title.ilike(search_pattern)) |
+                    (UserStoryModel.role.ilike(search_pattern))
+                )
+            count_result = await self.db.execute(count_query)
+            total_count = count_result.scalar_one() or 0
+
+            # 数据查询
             # 使用 LEFT JOIN 连接 INVEST 分析表，按分数降序排序
             query = (
                 select(UserStoryModel, INVESTAnalysisModel)
@@ -502,10 +519,23 @@ class IPDStoryService:
                     created_at=story.created_at,
                 ))
 
-            return workflows
+            return total_count, workflows
 
         else:
             # 原有的查询逻辑（按创建时间排序）
+
+            # 先获取总数（在应用skip/limit之前）
+            count_query = select(func.count(UserStoryModel.id)).where(UserStoryModel.tenant_id == tenant_id)
+            if search:
+                search_pattern = f"%{search}%"
+                count_query = count_query.where(
+                    (UserStoryModel.title.ilike(search_pattern)) |
+                    (UserStoryModel.role.ilike(search_pattern))
+                )
+            count_result = await self.db.execute(count_query)
+            total_count = count_result.scalar_one() or 0
+
+            # 数据查询
             query = select(UserStoryModel).where(UserStoryModel.tenant_id == tenant_id)
 
             # 添加搜索条件
@@ -573,7 +603,7 @@ class IPDStoryService:
                 created_at=story.created_at,
             ))
 
-        return workflows
+        return total_count, workflows
 
     async def delete_workflow(
         self,

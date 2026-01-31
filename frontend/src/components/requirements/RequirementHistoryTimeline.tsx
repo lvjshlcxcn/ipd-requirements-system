@@ -1,4 +1,4 @@
-import { Timeline, Tag, Empty, Input, Modal, Button, message } from 'antd'
+import { Timeline, Tag, Empty, Input, Modal, Button, message, Pagination } from 'antd'
 import { ClockCircleOutlined, EditOutlined, UserOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -21,19 +21,25 @@ interface HistoryItem {
 interface RequirementHistoryTimelineProps {
   requirementId: number
   // refreshTrigger 已移除 - TanStack Query 会自动管理缓存
+  pageSize?: number // 每页显示条数，默认10条
 }
 
 /**
  * 需求历史时间线组件
  * 显示需求的状态变更历史和用户添加的备注
  * 使用 TanStack Query 管理服务端状态
+ * 支持分页显示历史记录
  */
-export function RequirementHistoryTimeline({ requirementId }: RequirementHistoryTimelineProps) {
+export function RequirementHistoryTimeline({
+  requirementId,
+  pageSize = 10
+}: RequirementHistoryTimelineProps) {
   const queryClient = useQueryClient()
   const [noteModalVisible, setNoteModalVisible] = useState(false)
   const [noteContent, setNoteContent] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
 
-  // 使用 useQuery 获取历史记录
+  // 使用 useQuery 获取历史记录（获取更多数据以支持分页）
   const {
     data: history = [],
     isLoading,
@@ -41,7 +47,8 @@ export function RequirementHistoryTimeline({ requirementId }: RequirementHistory
   } = useQuery({
     queryKey: ['requirementHistory', requirementId],
     queryFn: async () => {
-      const response = await requirementService.getRequirementHistory(requirementId) as ApiResponse<HistoryItem[]>
+      // 获取最多100条历史记录用于分页
+      const response = await requirementService.getRequirementHistory(requirementId, 100) as ApiResponse<HistoryItem[]>
       if (response.success && response.data) {
         return response.data
       }
@@ -50,6 +57,20 @@ export function RequirementHistoryTimeline({ requirementId }: RequirementHistory
     staleTime: 5 * 60 * 1000, // 5分钟内数据视为新鲜
     gcTime: 10 * 60 * 1000, // 10分钟后清理缓存
   })
+
+  // 计算分页数据
+  const totalItems = history.length
+  const totalPages = Math.ceil(totalItems / pageSize)
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const currentPageData = history.slice(startIndex, endIndex)
+
+  // 页码改变处理
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    // 滚动到顶部
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   // 使用 useMutation 添加备注
   const addNoteMutation = useMutation({
@@ -84,20 +105,26 @@ export function RequirementHistoryTimeline({ requirementId }: RequirementHistory
     )
   }
 
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('zh-CN')
+  }
+
+  // 当添加新备注时，重置到第一页
   const handleAddNote = async () => {
     if (!noteContent.trim()) {
       message.warning('请输入备注内容')
       return
     }
 
-    addNoteMutation.mutate(noteContent)
+    addNoteMutation.mutate(noteContent, {
+      onSuccess: () => {
+        // 重置到第一页以显示最新添加的备注
+        setCurrentPage(1)
+      }
+    })
   }
 
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('zh-CN')
-  }
-
-  const timelineItems = history.map((item) => {
+  const timelineItems = currentPageData.map((item) => {
     const isStatusChange = item.action === 'status_changed' && item.from_status
 
     return {
@@ -149,7 +176,10 @@ export function RequirementHistoryTimeline({ requirementId }: RequirementHistory
 
   return (
     <div>
-      <div style={{ marginBottom: 16, textAlign: 'right' }}>
+      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ color: '#999', fontSize: 14 }}>
+          共 {totalItems} 条记录
+        </span>
         <Button
           type="primary"
           icon={<EditOutlined />}
@@ -161,10 +191,28 @@ export function RequirementHistoryTimeline({ requirementId }: RequirementHistory
 
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: 40 }}>加载中...</div>
-      ) : history.length === 0 ? (
+      ) : totalItems === 0 ? (
         <Empty description="暂无历史记录" />
       ) : (
-        <Timeline mode="left" items={timelineItems} />
+        <>
+          <Timeline mode="left" items={timelineItems} style={{ marginBottom: 24 }} />
+
+          {/* 分页组件 */}
+          {totalPages > 1 && (
+            <div style={{ textAlign: 'center', marginTop: 24 }}>
+              <Pagination
+                current={currentPage}
+                total={totalItems}
+                pageSize={pageSize}
+                onChange={handlePageChange}
+                showSizeChanger={false}
+                showQuickJumper
+                showTotal={(total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`}
+                size="small"
+              />
+            </div>
+          )}
+        </>
       )}
 
       <Modal

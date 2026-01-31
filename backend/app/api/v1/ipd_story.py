@@ -246,7 +246,7 @@ async def list_workflows(
     try:
         service = IPDStoryService(db)
 
-        workflows = await service.list_workflows(
+        total, workflows = await service.list_workflows(
             tenant_id=tenant_id,
             skip=skip,
             limit=limit,
@@ -258,7 +258,7 @@ async def list_workflows(
             "success": True,
             "data": {
                 "data": [w.model_dump(by_alias=True) for w in workflows],
-                "total": len(workflows),
+                "total": total,
             },
         }
     except Exception as e:

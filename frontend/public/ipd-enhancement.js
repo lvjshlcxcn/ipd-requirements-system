@@ -1,10 +1,16 @@
 // IPD Story Flow Enhancement - 保存和查询功能
 (function() {
     'use strict';
-    
+
     let savedWorkflowId = null;
     const API_BASE = '/api/v1/ipd-story';
-    
+
+    // 分页状态
+    let currentPage = 1;
+    let pageSize = 10;
+    let totalRecords = 0;
+    let currentSearchKeyword = '';
+
     // 初始化
     function init() {
         setTimeout(() => {
@@ -118,7 +124,7 @@
             }
         }, 500);
     }
-    
+
     // 获取认证headers
     function getAuthHeaders() {
         // 尝试从多个来源获取token
@@ -162,7 +168,7 @@
 
         return headers;
     }
-    
+
     // 保存到数据库
     async function saveToDatabase() {
         // 检查数据
@@ -205,7 +211,7 @@
                     average_score: calculateTotalScore()  // 平均分（0-100）
                 }
             };
-            
+
             const response = await fetch(API_BASE + '/workflow', {
                 method: 'POST',
                 headers: getAuthHeaders(),
@@ -243,7 +249,7 @@
     function getSuggestionsList() {
         const suggestions = [];
         const scores = investScores;
-        
+
         if (scores.independent < 60) {
             suggestions.push('独立性较低：尝试将需求拆分为更小、更独立的功能模块');
         }
@@ -262,16 +268,20 @@
         if (scores.testable < 60) {
             suggestions.push('可测试性不足：定义明确的验收标准和测试场景');
         }
-        
+
         if (suggestions.length === 0) {
             suggestions.push('各项指标表现良好！这是一个高质量的用户故事。');
         }
-        
+
         return suggestions;
     }
-    
+
     // 显示历史记录
     async function showHistoryModal() {
+        // 重置分页状态
+        currentPage = 1;
+        currentSearchKeyword = '';
+
         const modal = document.createElement('div');
         modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:9999;';
 
@@ -279,7 +289,10 @@
         content.style.cssText = 'background:white;border-radius:8px;padding:30px;max-width:900px;max-height:80vh;overflow-y:auto;width:90%;';
 
         content.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:1px solid #f0f0f0;padding-bottom:15px;">' +
+            '<div>' +
             '<h2 style="margin:0;">历史记录</h2>' +
+            '<p id="recordCount" style="margin:5px 0 0 0;color:#999;font-size:13px;">加载中...</p>' +
+            '</div>' +
             '<div style="display:flex;gap:10px;">' +
             '<button class="btn btn-primary" id="exportAllBtn" style="padding:6px 16px;font-size:14px;">📥 导出所有</button>' +
             '<button class="btn btn-secondary" id="closeModalBtn" style="padding:6px 16px;font-size:14px;">✕ 关闭</button>' +
@@ -290,7 +303,8 @@
             '<button id="searchBtn" class="btn btn-secondary">🔍 搜索</button>' +
             '<button id="clearSearchBtn" class="btn btn-secondary" style="display:none;">清除</button>' +
             '</div>' +
-            '<div id="historyList">加载中...</div>';
+            '<div id="historyList">加载中...</div>' +
+            '<div id="paginationContainer" style="margin-top:20px;display:flex;justify-content:center;align-items:center;gap:10px;"></div>';
 
         modal.className = 'ipd-modal';
         modal.appendChild(content);
@@ -311,7 +325,9 @@
 
         const doSearch = function() {
             const keyword = searchInput.value.trim();
-            loadHistoryList(keyword);
+            currentSearchKeyword = keyword;
+            currentPage = 1; // 重置到第一页
+            loadHistoryList(keyword, currentPage);
             if (keyword) {
                 clearSearchBtn.style.display = 'inline-block';
             } else {
@@ -326,19 +342,26 @@
 
         clearSearchBtn.onclick = function() {
             searchInput.value = '';
-            loadHistoryList();
+            currentSearchKeyword = '';
+            currentPage = 1;
+            loadHistoryList('', currentPage);
             clearSearchBtn.style.display = 'none';
         };
 
-        loadHistoryList();
+        loadHistoryList('', currentPage);
     }
 
     // 加载历史列表
-    async function loadHistoryList(searchKeyword = '') {
+    async function loadHistoryList(searchKeyword = '', page = 1) {
         const listContainer = document.getElementById('historyList');
+        const paginationContainer = document.getElementById('paginationContainer');
+        const recordCountEl = document.getElementById('recordCount');
+
+        if (!listContainer) return;
 
         try {
-            let url = '/workflows?skip=0&limit=20&order_by_invest=true';
+            const skip = (page - 1) * pageSize;
+            let url = '/workflows?skip=' + skip + '&limit=' + pageSize + '&order_by_invest=true';
             if (searchKeyword) {
                 url += '&search=' + encodeURIComponent(searchKeyword);
             }
@@ -351,6 +374,14 @@
 
             if (result.success && result.data.data.length > 0) {
                 const workflows = result.data.data;
+                totalRecords = result.data.total;
+
+                // 更新记录计数
+                if (recordCountEl) {
+                    const totalPages = Math.ceil(totalRecords / pageSize);
+                    recordCountEl.textContent = `共 ${totalRecords} 条记录，第 ${page}/${totalPages} 页`;
+                }
+
                 listContainer.innerHTML = workflows.map(function(w) {
                     // 显示平均分（0-100），更直观
                     const averageScore = w.invest_analysis ? w.invest_analysis.average_score || 0 : 0;
@@ -379,13 +410,121 @@
                 // 添加事件委托
                 setupHistoryListEventDelegation(listContainer);
 
-                listContainer.innerHTML += '<p style="color:#999;text-align:center;margin-top:20px;">共 ' + result.data.total + ' 条记录</p>';
+                // 渲染分页组件
+                renderPagination(paginationContainer, page, totalRecords);
             } else {
                 listContainer.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">暂无历史记录</p>';
+                if (recordCountEl) {
+                    recordCountEl.textContent = '共 0 条记录';
+                }
+                if (paginationContainer) {
+                    paginationContainer.innerHTML = '';
+                }
             }
         } catch (error) {
             console.error('Load error:', error);
             listContainer.innerHTML = '<p style="color:#ff4d4f;text-align:center;">加载失败: ' + error.message + '</p>';
+        }
+    }
+
+    // 渲染分页组件
+    function renderPagination(container, currentPage, totalRecords) {
+        if (!container) return;
+
+        const totalPages = Math.ceil(totalRecords / pageSize);
+
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let html = '<div style="display:flex;align-items:center;gap:8px;">';
+
+        // 上一页按钮
+        html += '<button ' +
+            'class="pagination-btn" ' +
+            'data-page="' + (currentPage - 1) + '" ' +
+            (currentPage === 1 ? 'disabled style="opacity:0.5;cursor:not-allowed;padding:6px 12px;border:1px solid #d9d9d9;border-radius:4px;background:white;font-size:13px;"' : 'style="padding:6px 12px;border:1px solid #d9d9d9;border-radius:4px;background:white;cursor:pointer;font-size:13px;"') +
+            '>上一页</button>';
+
+        // 页码按钮
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+        if (endPage - startPage < maxVisiblePages - 1) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+
+        if (startPage > 1) {
+            html += '<button class="pagination-btn" data-page="1" style="padding:6px 12px;border:1px solid #d9d9d9;border-radius:4px;background:white;cursor:pointer;font-size:13px;">1</button>';
+            if (startPage > 2) {
+                html += '<span style="padding:0 4px;color:#999;">...</span>';
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const isActive = i === currentPage;
+            html += '<button ' +
+                'class="pagination-btn" ' +
+                'data-page="' + i + '" ' +
+                (isActive ? 'style="padding:6px 12px;border:1px solid #1890ff;border-radius:4px;background:#1890ff;color:white;cursor:default;font-size:13px;"' : 'style="padding:6px 12px;border:1px solid #d9d9d9;border-radius:4px;background:white;cursor:pointer;font-size:13px;"') +
+                '>' + i + '</button>';
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                html += '<span style="padding:0 4px;color:#999;">...</span>';
+            }
+            html += '<button class="pagination-btn" data-page="' + totalPages + '" style="padding:6px 12px;border:1px solid #d9d9d9;border-radius:4px;background:white;cursor:pointer;font-size:13px;">' + totalPages + '</button>';
+        }
+
+        // 下一页按钮
+        html += '<button ' +
+            'class="pagination-btn" ' +
+            'data-page="' + (currentPage + 1) + '" ' +
+            (currentPage === totalPages ? 'disabled style="opacity:0.5;cursor:not-allowed;padding:6px 12px;border:1px solid #d9d9d9;border-radius:4px;background:white;font-size:13px;"' : 'style="padding:6px 12px;border:1px solid #d9d9d9;border-radius:4px;background:white;cursor:pointer;font-size:13px;"') +
+            '>下一页</button>';
+
+        // 快速跳转
+        html += '<span style="margin-left:10px;color:#666;font-size:13px;">跳至</span>';
+        html += '<input type="number" id="jumpPageInput" min="1" max="' + totalPages + '" value="' + currentPage + '" style="width:50px;padding:4px 8px;border:1px solid #d9d9d9;border-radius:4px;text-align:center;font-size:13px;" />';
+        html += '<span style="color:#666;font-size:13px;">页</span>';
+        html += '<button id="jumpPageBtn" style="padding:6px 12px;border:1px solid #d9d9d9;border-radius:4px;background:white;cursor:pointer;font-size:13px;">Go</button>';
+
+        html += '</div>';
+
+        container.innerHTML = html;
+
+        // 绑定分页事件
+        const paginationButtons = container.querySelectorAll('.pagination-btn');
+        paginationButtons.forEach(function(btn) {
+            btn.onclick = function() {
+                const page = parseInt(this.getAttribute('data-page'));
+                if (page && page !== currentPage && !this.disabled) {
+                    currentPage = page;
+                    loadHistoryList(currentSearchKeyword, currentPage);
+                }
+            };
+        });
+
+        // 绑定快速跳转事件
+        const jumpBtn = document.getElementById('jumpPageBtn');
+        const jumpInput = document.getElementById('jumpPageInput');
+        if (jumpBtn && jumpInput) {
+            jumpBtn.onclick = function() {
+                const page = parseInt(jumpInput.value);
+                if (page >= 1 && page <= totalPages && page !== currentPage) {
+                    currentPage = page;
+                    loadHistoryList(currentSearchKeyword, currentPage);
+                }
+            };
+
+            jumpInput.onkeypress = function(e) {
+                if (e.key === 'Enter') {
+                    jumpBtn.click();
+                }
+            };
         }
     }
 
@@ -418,16 +557,16 @@
             return;
         }
     }
-    
+
     // 加载工作流详情
     async function loadWorkflow(workflowId) {
         try {
             const response = await fetch(API_BASE + '/workflow/' + workflowId, {
                 headers: getAuthHeaders()
             });
-            
+
             const result = await response.json();
-            
+
             if (result.success) {
                 const workflow = result.data;
 
@@ -466,7 +605,7 @@
                         }
                     }
                 }
-                
+
                 if (workflow.user_story) {
                     const userStoryData = {
                         title: workflow.user_story.title,
@@ -496,10 +635,10 @@
                         });
                     }
                 }
-                
+
                 if (workflow.invest_analysis) {
                     window.investScores = workflow.invest_analysis.scores || window.investScores;
-                    
+
                     // 更新滑块
                     Object.keys(window.investScores).forEach(function(key) {
                         const slider = document.getElementById(key);
@@ -507,7 +646,7 @@
                         if (slider) slider.value = window.investScores[key];
                         if (valueDisplay) valueDisplay.textContent = window.investScores[key];
                     });
-                    
+
                     // 重绘图表
                     if (typeof drawRadarChart === 'function') {
                         drawRadarChart();
@@ -562,8 +701,8 @@
 
             if (result.success) {
                 alert('✅ 删除成功！');
-                // 重新加载列表
-                await loadHistoryList();
+                // 重新加载列表（保持当前页）
+                await loadHistoryList(currentSearchKeyword, currentPage);
             } else {
                 alert('❌ 删除失败: ' + (result.message || '未知错误'));
                 // 恢复删除按钮
@@ -649,7 +788,7 @@
         loadWorkflow: loadWorkflow,
         deleteWorkflow: deleteWorkflow
     };
-    
+
     // 监听来自父页面的消息（用于接收 AI 洞察分析结果）
     window.addEventListener('message', function(event) {
         // 安全检查：只接受来自同源的消息
@@ -716,5 +855,5 @@
         init();
     }
 
-    console.log('IPD增强功能已加载');
+    console.log('IPD增强功能已加载（带分页）');
 })();

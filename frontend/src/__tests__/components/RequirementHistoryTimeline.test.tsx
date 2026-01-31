@@ -372,14 +372,83 @@ describe('RequirementHistoryTimeline', () => {
     })
   })
 
-  describe('Refresh on Trigger Change', () => {
-    it('should refetch history when refreshTrigger changes', async () => {
-      // @ts-ignore
-      let callCount = 0
+  describe('Pagination', () => {
+    it('should show pagination when history exceeds page size', async () => {
+      // Create 25 mock history items (more than default page size of 10)
+      const largeMockHistory = {
+        success: true,
+        data: Array.from({ length: 25 }, (_, i) => ({
+          id: i + 1,
+          action: i % 2 === 0 ? 'status_changed' : 'note_added',
+          from_status: i % 2 === 0 ? 'collected' : null,
+          to_status: 'analyzing',
+          comments: i % 2 === 0 ? null : `备注 ${i + 1}`,
+          performed_at: new Date(Date.now() - i * 60000).toISOString(),
+          performed_by: 1,
+        })),
+      }
 
-      vi.mocked(requirementService.getRequirementHistory).mockImplementation(() => {
-        callCount++
-        return Promise.resolve(mockHistoryData)
+      vi.mocked(requirementService.getRequirementHistory).mockResolvedValue(largeMockHistory)
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={createTestQueryClient()}>
+          {children}
+        </QueryClientProvider>
+      )
+
+      render(<RequirementHistoryTimeline requirementId={1} />, { wrapper })
+
+      // Wait for history to load and pagination to appear
+      await waitFor(() => {
+        expect(screen.getByText(/共 25 条记录/)).toBeInTheDocument()
+      }, { timeout: 3000 })
+    })
+
+    it('should not show pagination when history fits on one page', async () => {
+      vi.mocked(requirementService.getRequirementHistory).mockResolvedValue(mockHistoryData)
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={createTestQueryClient()}>
+          {children}
+        </QueryClientProvider>
+      )
+
+      render(<RequirementHistoryTimeline requirementId={1} />, { wrapper })
+
+      await waitFor(() => {
+        expect(screen.getByText(/共 2 条记录/)).toBeInTheDocument()
+      }, { timeout: 3000 })
+
+      // Should not show pagination when totalPages <= 1
+      expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
+    })
+
+    it('should display correct page count in header', async () => {
+      vi.mocked(requirementService.getRequirementHistory).mockResolvedValue(mockHistoryData)
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={createTestQueryClient()}>
+          {children}
+        </QueryClientProvider>
+      )
+
+      render(<RequirementHistoryTimeline requirementId={1} />, { wrapper })
+
+      await waitFor(() => {
+        expect(screen.getByText('共 2 条记录')).toBeInTheDocument()
+      }, { timeout: 3000 })
+    })
+  })
+
+  describe('Auto-refresh with TanStack Query', () => {
+    it('should refetch history when adding a note', async () => {
+      vi.mocked(requirementService.getRequirementHistory).mockResolvedValue({
+        success: true,
+        data: [],
+      })
+      vi.mocked(requirementService.addHistoryNote).mockResolvedValue({
+        success: true,
+        message: '备注添加成功',
       })
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -388,27 +457,44 @@ describe('RequirementHistoryTimeline', () => {
         </QueryClientProvider>
       )
 
-      // @ts-ignore
-      const { rerender: customRerender } = render(
-        <RequirementHistoryTimeline requirementId={1} />,
-        { wrapper }
-      )
+      render(<RequirementHistoryTimeline requirementId={1} />, { wrapper })
 
+      // Open modal
       await waitFor(() => {
-        expect(screen.getByText('状态变更')).toBeInTheDocument()
+        const addButton = screen.getByRole('button', { name: /添加备注/ })
+        expect(addButton).toBeInTheDocument()
       }, { timeout: 3000 })
 
-      const firstCallCount = callCount
+      await act(async () => {
+        await userEvent.click(screen.getByRole('button', { name: /添加备注/ }))
+      })
 
-      // Update refreshTrigger
-      // @ts-ignore
-      customRerender(
-        <RequirementHistoryTimeline requirementId={1} />
-      )
+      // Type note
+      const textarea = screen.getByPlaceholderText(/请输入备注内容/)
+      await userEvent.type(textarea, '新备注')
 
+      // Submit
       await waitFor(() => {
-        expect(callCount).toBeGreaterThan(firstCallCount)
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
       }, { timeout: 3000 })
+
+      const allButtons = screen.getAllByRole('button')
+      const confirmButton = allButtons.find(btn => btn.textContent?.includes('确定'))
+      if (!confirmButton) {
+        throw new Error('Confirm button not found')
+      }
+      await act(async () => {
+        await userEvent.click(confirmButton)
+      })
+
+      // Verify service was called and cache should be invalidated
+      await waitFor(() => {
+        expect(requirementService.addHistoryNote).toHaveBeenCalledWith(1, {
+          comments: '新备注',
+        })
+      }, { timeout: 3000 })
+
+      expect(message.success).toHaveBeenCalledWith('备注添加成功')
     })
   })
 })
