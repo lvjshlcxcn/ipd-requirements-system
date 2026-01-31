@@ -236,7 +236,7 @@ export function RequirementsListPage() {
       />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>需求管理</h2>
+        <h2 style={{ margin: 0 }}>新需求输入</h2>
         <Space>
           <Input
             placeholder="搜索需求"
