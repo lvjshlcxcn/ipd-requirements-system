@@ -20,14 +20,16 @@ export function AnalyticsPage() {
   const [selectedRequirement, setSelectedRequirement] = useState<any>(null)
   const [activeTab, setActiveTab] = useState('appeals')
 
-  // 加载需求列表（排除已分析完成的需求）
+  // 加载需求列表（只包含已收集和分析中的需求）
   useEffect(() => {
     async function fetchRequirements() {
       try {
         const response = await api.get('/requirements')
         const items = response?.data?.items || []
-        // 过滤掉状态为 analyzed 的需求，因为它们已经分析完成
-        const filteredItems = items.filter((req: any) => req.status !== 'analyzed')
+        // 只包含 collected（已收集）和 analyzing（分析中）状态的需求
+        const filteredItems = items.filter((req: any) =>
+          req.status === 'collected' || req.status === 'analyzing'
+        )
         setRequirements(filteredItems)
       } catch (error) {
         console.error('Failed to fetch requirements:', error)
