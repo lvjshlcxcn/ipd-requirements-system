@@ -10,7 +10,7 @@ from app.schemas.import_export import (
     ImportResult,
 )
 from app.models.import_job import ImportJob, ImportStatus
-from app.models.export_job import ExportJob, ExportType, ExportStatus
+from app.models.export_job import ExportJob
 from app.repositories.base import BaseRepository
 from app.api.deps import get_db, get_current_user
 from app.core.tenant import get_current_tenant
@@ -101,7 +101,7 @@ async def get_import_job(
     return ImportJobResponse.model_validate(job)
 
 
-@router.post("/export", response_model=ExportJobResponse)
+@router.post("/export")
 async def export_data(
     export_request: ExportRequest,
     db: Session = Depends(get_db),
@@ -109,25 +109,32 @@ async def export_data(
 ):
     """Export requirements to Excel or PDF."""
     repo = BaseRepository(ExportJob, db)
-    tenant_id = get_current_tenant() or current_user.tenant_id
+    tenant_id = get_current_tenant() or (current_user.tenant_id if current_user else 1)
+
+    # Handle unauthenticated users - use default user ID
+    exported_by_id = current_user.id if current_user else 1
 
     # Create export job
     export_job = await repo.create(
         tenant_id=tenant_id,
-        exported_by=current_user.id,
+        exported_by=exported_by_id,
         export_type=export_request.export_type,
-        filters=export_request.filters.model_dump(),
-        status=ExportStatus.processing,
+        filters=export_request.filters or {},
+        status="processing",
         file_path="",
         file_size=0,
         download_url="",
     )
 
     # TODO: Trigger async export task
-    # For now, mark as completed
-    await repo.update(export_job.id, status=ExportStatus.completed)
+    # For now, mark as completed with placeholder message
+    await repo.update(export_job.id, status="completed")
 
-    return ExportJobResponse.model_validate(export_job)
+    return {
+        "success": True,
+        "message": "导出功能开发中",
+        "data": ExportJobResponse.model_validate(export_job)
+    }
 
 
 @router.get("/export/jobs", response_model=List[ExportJobResponse])
@@ -142,8 +149,8 @@ async def get_export_jobs(
     query = repo._get_query()
 
     # Filter by tenant
-    from app.models.export_job import ExportJob
-    query = query.where(ExportJob.tenant_id == current_user.tenant_id)
+    from app.models.export_job import ExportJob as ExportJobModel
+    query = query.where(ExportJobModel.tenant_id == current_user.tenant_id)
 
     query = query.offset(skip).limit(limit)
     result = db.execute(query)
@@ -196,4 +203,5 @@ async def download_export(
     return {
         "success": True,
         "download_url": job.download_url,
+        "message": "导出功能开发中"
     }
