@@ -38,7 +38,7 @@ export const routeConfigs: RouteConfig[] = [
       { path: '/analytics', element: AnalyticsPage, title: '需求分析' },
       { path: '/distribution', element: DistributionPage, title: '需求分发' },
       { path: '/development', element: DevelopmentPage, title: '需求开发' },
-      { path: '/rtm', element: RTMPage, title: '需求跟踪' },
+      { path: '/rtm', element: RTMPage, title: '需求追溯矩阵 (RTM)' },
       { path: '/verification', element: VerificationOverviewPage, title: '需求验证' },
       { path: '/ipd-story-flow', element: IPDStoryFlowPage, title: 'IPD需求十问' },
       { path: '/requirements/:requirementId/verification', element: VerificationListPage, title: '验证清单' },

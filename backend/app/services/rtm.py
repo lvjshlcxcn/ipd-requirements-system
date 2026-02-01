@@ -99,6 +99,7 @@ class RTMService:
                     requirement_id=req.id,  # 数据库ID
                     requirement_no=req.requirement_no,  # 使用业务需求编号
                     requirement_title=req.title or f"需求 {req.requirement_no}",
+                    requirement_description=req.description,  # 添加需求描述
                     design_items=design_items,
                     code_items=code_items,
                     test_items=test_items,

@@ -90,6 +90,7 @@ class TraceabilityMatrix(BaseModel):
     requirement_id: int  # 数据库ID，用于创建关联
     requirement_no: str  # 业务需求编号 (REQ-2025-0001)
     requirement_title: str
+    requirement_description: Optional[str] = None  # 需求描述
     design_items: List[TraceabilityItem] = []
     code_items: List[TraceabilityItem] = []
     test_items: List[TraceabilityItem] = []

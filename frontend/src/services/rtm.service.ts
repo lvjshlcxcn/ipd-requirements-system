@@ -44,6 +44,7 @@ export interface TraceabilityMatrix {
   requirement_id: number
   requirement_no: string
   requirement_title: string
+  requirement_description?: string
   design_items: TraceabilityItem[]
   code_items: TraceabilityItem[]
   test_items: TraceabilityItem[]

@@ -181,6 +181,14 @@ export const RTMPage: React.FC = () => {
       ellipsis: true,
     },
     {
+      title: '需求描述',
+      dataIndex: 'requirement_description',
+      key: 'requirement_description',
+      width: 250,
+      ellipsis: true,
+      render: (text: string) => text || <Text type="secondary">-</Text>,
+    },
+    {
       title: '设计文档',
       key: 'design',
       width: 280,
@@ -385,7 +393,7 @@ export const RTMPage: React.FC = () => {
               columns={columns}
               dataSource={filteredMatrix}
               rowKey="requirement_no"
-              scroll={{ x: 1400 }}
+              scroll={{ x: 1650 }}
               pagination={{
                 pageSize: 20,
                 showSizeChanger: true,

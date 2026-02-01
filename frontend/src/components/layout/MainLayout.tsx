@@ -14,7 +14,7 @@ const menuItems = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: '仪表盘' },
   { key: '/requirements', icon: <FileTextOutlined />, label: '需求管理' },
   { key: '/analytics', icon: <BarChartOutlined />, label: '需求分析' },
-  { key: '/rtm', icon: <PartitionOutlined />, label: '需求跟踪' },
+  { key: '/rtm', icon: <PartitionOutlined />, label: '需求追溯矩阵 (RTM)' },
   { key: '/verifications', icon: <CheckCircleOutlined />, label: '需求验证' },
 ]
 
