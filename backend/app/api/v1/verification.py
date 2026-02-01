@@ -98,6 +98,41 @@ async def get_verifications(
     }
 
 
+@router.get("/summary")
+async def get_verification_summary(
+    requirement_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional = Depends(lambda: None),
+):
+    """Get verification summary for a requirement."""
+    repo = BaseRepository(VerificationChecklist, db)
+    query = repo._get_query()
+    query = query.where(VerificationChecklist.requirement_id == requirement_id)
+
+    result = await db.execute(query)
+    checklists = list(result.scalars().all())
+
+    total = len(checklists)
+    passed = sum(1 for c in checklists if c.result == "passed")
+    failed = sum(1 for c in checklists if c.result == "failed")
+    in_progress = sum(1 for c in checklists if c.result == "in_progress")
+    not_started = sum(1 for c in checklists if c.result == "not_started")
+
+    summary = VerificationSummary(
+        requirement_id=requirement_id,
+        total_checklists=total,
+        passed=passed,
+        failed=failed,
+        in_progress=in_progress,
+        not_started=not_started,
+    )
+
+    return {
+        "success": True,
+        "data": summary
+    }
+
+
 @router.get("/{checklist_id}")
 async def get_checklist(
     requirement_id: int,
@@ -229,38 +264,3 @@ async def submit_checklist(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Checklist not found",
     )
-
-
-@router.get("/summary")
-async def get_verification_summary(
-    requirement_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: Optional = Depends(lambda: None),
-):
-    """Get verification summary for a requirement."""
-    repo = BaseRepository(VerificationChecklist, db)
-    query = repo._get_query()
-    query = query.where(VerificationChecklist.requirement_id == requirement_id)
-
-    result = await db.execute(query)
-    checklists = list(result.scalars().all())
-
-    total = len(checklists)
-    passed = sum(1 for c in checklists if c.result == "passed")
-    failed = sum(1 for c in checklists if c.result == "failed")
-    in_progress = sum(1 for c in checklists if c.result == "in_progress")
-    not_started = sum(1 for c in checklists if c.result == "not_started")
-
-    summary = VerificationSummary(
-        requirement_id=requirement_id,
-        total_checklists=total,
-        passed=passed,
-        failed=failed,
-        in_progress=in_progress,
-        not_started=not_started,
-    )
-
-    return {
-        "success": True,
-        "data": summary
-    }
