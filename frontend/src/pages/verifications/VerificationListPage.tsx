@@ -234,7 +234,7 @@ const VerificationListPage: React.FC = () => {
                         类型：{VERIFICATION_TYPE_MAP[item.verification_type]}
                       </Text>
                       <Text type="secondary">
-                        检查项：{item.checklist_items.filter(i => i.checked).length} / {item.checklist_items.length}
+                        检查项：{(item.checklist_items || []).filter(i => i.checked).length} / {item.checklist_items?.length || 0}
                       </Text>
                       {item.verified_by && (
                         <Text type="secondary">
