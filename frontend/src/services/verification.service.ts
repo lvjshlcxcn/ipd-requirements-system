@@ -106,7 +106,14 @@ class VerificationService {
     requirementId: number,
     checklistId: number
   ): Promise<VerificationChecklist> {
+    console.log('[VerificationService] getChecklist调用:', {
+      requirementId,
+      checklistId,
+      url: `/requirements/${requirementId}/verification/${checklistId}`
+    });
     const response: any = await api.get(`/requirements/${requirementId}/verification/${checklistId}`);
+    console.log('[VerificationService] API原始响应:', response);
+    console.log('[VerificationService] 返回的数据:', response.data);
     return response.data;
   }
 

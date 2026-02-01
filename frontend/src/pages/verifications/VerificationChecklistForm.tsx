@@ -40,14 +40,12 @@ const { Option } = Select;
 
 interface VerificationChecklistFormProps {
   mode: 'create' | 'edit' | 'view';
-  checklistId?: string;
 }
 
 const VerificationChecklistForm: React.FC<VerificationChecklistFormProps> = ({
   mode,
-  checklistId,
 }) => {
-  const { requirementId } = useParams<{ requirementId: string }>();
+  const { requirementId, checklistId } = useParams<{ requirementId: string; checklistId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form] = Form.useForm();
@@ -97,6 +95,12 @@ const VerificationChecklistForm: React.FC<VerificationChecklistFormProps> = ({
   });
 
   useEffect(() => {
+    console.log('[VerificationChecklistForm] useEffect触发:', {
+      mode,
+      checklistId,
+      requirementId,
+      shouldLoad: mode === 'edit' || mode === 'view'
+    });
     if (mode === 'edit' || mode === 'view') {
       loadChecklist();
     }
@@ -104,26 +108,55 @@ const VerificationChecklistForm: React.FC<VerificationChecklistFormProps> = ({
 
   /** 加载验证清单 */
   const loadChecklist = async () => {
-    if (!checklistId || !requirementId) return;
+    if (!checklistId || !requirementId) {
+      console.error('[VerificationChecklistForm] 缺少必要参数:', {
+        checklistId,
+        requirementId,
+        mode
+      });
+      return;
+    }
 
     try {
       setLoading(true);
+      console.log('[VerificationChecklistForm] 开始加载验证清单:', {
+        checklistId,
+        requirementId,
+        mode
+      });
+
       // 使用新的API直接获取单个清单
       const target = await verificationService.getChecklist(
         parseInt(requirementId),
         parseInt(checklistId)
       );
+
+      console.log('[VerificationChecklistForm] API返回的数据:', target);
+
       if (target) {
+        console.log('[VerificationChecklistForm] 设置checklist状态:', target);
         setChecklist(target);
-        setChecklistItems(target.checklist_items);
+        // 确保 checklist_items 总是数组，添加防御性检查
+        const items = Array.isArray(target.checklist_items) ? target.checklist_items : [];
+        console.log('[VerificationChecklistForm] 检查项列表:', items);
+        setChecklistItems(items);
+
+        console.log('[VerificationChecklistForm] 设置表单值:', {
+          verification_type: target.verification_type,
+          checklist_name: target.checklist_name,
+        });
         form.setFieldsValue({
           verification_type: target.verification_type,
           checklist_name: target.checklist_name,
         });
+        console.log('[VerificationChecklistForm] 数据加载完成');
+      } else {
+        console.error('[VerificationChecklistForm] API返回null或undefined');
+        message.error('未找到验证清单');
       }
     } catch (error) {
+      console.error('[VerificationChecklistForm] 加载失败:', error);
       message.error('加载验证清单失败');
-      console.error(error);
     } finally {
       setLoading(false);
     }
