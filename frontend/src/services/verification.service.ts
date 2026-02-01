@@ -100,6 +100,17 @@ class VerificationService {
   }
 
   /**
+   * 获取单个验证清单
+   */
+  async getChecklist(
+    requirementId: number,
+    checklistId: number
+  ): Promise<VerificationChecklist> {
+    const response: any = await api.get(`/requirements/${requirementId}/verification/${checklistId}`);
+    return response.data;
+  }
+
+  /**
    * 更新验证清单
    */
   async updateChecklist(

@@ -98,6 +98,29 @@ async def get_verifications(
     }
 
 
+@router.get("/{checklist_id}")
+async def get_checklist(
+    requirement_id: int,
+    checklist_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional = Depends(lambda: None),
+):
+    """Get a single verification checklist by ID."""
+    repo = BaseRepository(VerificationChecklist, db)
+
+    checklist = await repo.get_by_id(checklist_id)
+    if not checklist or checklist.requirement_id != requirement_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Checklist not found",
+        )
+
+    return {
+        "success": True,
+        "data": serialize_checklist(checklist)
+    }
+
+
 @router.post("")
 async def create_checklist(
     requirement_id: int,
