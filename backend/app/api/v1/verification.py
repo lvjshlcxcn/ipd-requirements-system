@@ -217,16 +217,24 @@ async def update_checklist(
     checklist_items_dict = [item.model_dump() for item in checklist_data.checklist_items]
     checklist_items_json = json.dumps(checklist_items_dict)
 
-    updated = await repo.update(checklist_id, checklist_items=checklist_items_json)
-    if updated:
-        return {
-            "success": True,
-            "data": serialize_checklist(updated)
-        }
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Checklist not found",
-    )
+    try:
+        updated = await repo.update(checklist_id, checklist_items=checklist_items_json)
+
+        # 显式提交事务，确保数据保存到数据库
+        await db.commit()
+
+        if updated:
+            return {
+                "success": True,
+                "data": serialize_checklist(updated)
+            }
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Checklist not found",
+        )
+    except Exception as e:
+        await db.rollback()
+        raise
 
 
 @router.post("/{checklist_id}/submit")
@@ -247,20 +255,28 @@ async def submit_checklist(
             detail="Checklist not found",
         )
 
-    updated = await repo.update(
-        checklist_id,
-        result=submit_data.result,
-        evidence_attachments=submit_data.evidence_attachments,
-        customer_feedback=submit_data.customer_feedback,
-        issues_found=submit_data.issues_found,
-        verified_by=current_user.id if current_user else None,
-    )
-    if updated:
-        return {
-            "success": True,
-            "data": serialize_checklist(updated)
-        }
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Checklist not found",
-    )
+    try:
+        updated = await repo.update(
+            checklist_id,
+            result=submit_data.result,
+            evidence_attachments=submit_data.evidence_attachments,
+            customer_feedback=submit_data.customer_feedback,
+            issues_found=submit_data.issues_found,
+            verified_by=current_user.id if current_user else None,
+        )
+
+        # 显式提交事务，确保数据保存到数据库
+        await db.commit()
+
+        if updated:
+            return {
+                "success": True,
+                "data": serialize_checklist(updated)
+            }
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Checklist not found",
+        )
+    except Exception as e:
+        await db.rollback()
+        raise
