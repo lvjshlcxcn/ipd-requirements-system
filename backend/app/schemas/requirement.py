@@ -53,7 +53,7 @@ class RequirementBase(BaseModel):
     description: str = Field(..., min_length=1, description="需求描述")
     source_channel: str = Field(..., description="来源渠道")
     source_contact: Optional[str] = Field(None, max_length=100, description="联系人")
-    estimated_duration_months: Optional[int] = Field(None, ge=1, le=120, description="预估工期(月)")
+    estimated_duration_months: Optional[float] = Field(None, ge=0, le=365, description="预估工期(天)")
     complexity_level: Optional[str] = Field(None, description="复杂度级别")
 
 
@@ -77,7 +77,7 @@ class RequirementUpdate(BaseModel):
     priority_rank: Optional[int] = Field(None, ge=1, le=1000)
     moscow_priority: Optional[str] = Field(None, description="MoSCoW priority")
     moscow_comment: Optional[str] = Field(None, description="MoSCoW priority justification")
-    estimated_duration_months: Optional[int] = Field(None, ge=1, le=120)
+    estimated_duration_months: Optional[float] = Field(None, ge=0, le=365)
     complexity_level: Optional[str] = None
     target_type: Optional[str] = None
     target_id: Optional[int] = None
@@ -104,7 +104,7 @@ class RequirementResponse(BaseModel):
     rice_score: Optional[Dict[str, Any]] = None  # 添加RICE评分
     target_type: Optional[str] = None
     target_id: Optional[int] = None
-    estimated_duration_months: Optional[int] = None
+    estimated_duration_months: Optional[float] = None
     complexity_level: Optional[str] = None
     customer_need_10q: Optional[Dict[str, Any]] = None
     collector_id: Optional[int] = None

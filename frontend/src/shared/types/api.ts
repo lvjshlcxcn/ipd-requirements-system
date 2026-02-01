@@ -35,7 +35,7 @@ export interface Requirement {
   target_id?: number
   customer_need_10q?: CustomerNeed10Q | string
   kano_category?: KanoCategory
-  estimated_duration_months?: number
+  estimated_duration_months?: number  // 支持小数天数
   complexity_level?: ComplexityLevel
   collected_at?: string
   created_at: string

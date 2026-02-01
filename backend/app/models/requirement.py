@@ -119,8 +119,8 @@ class Requirement(Base, TimestampMixin, TenantMixin):
     target_type: Mapped[str | None] = mapped_column(TargetType)
     target_id: Mapped[int | None] = mapped_column(Integer)
 
-    # Time estimation
-    estimated_duration_months: Mapped[int | None] = mapped_column(Integer)
+    # Time estimation (支持小数天数)
+    estimated_duration_months: Mapped[float | None] = mapped_column(Float)
     complexity_level: Mapped[str | None] = mapped_column(ComplexityLevel)
 
     # Metadata

@@ -5,6 +5,7 @@ import type { ColumnsType } from 'antd/es/table'
 import { FileTextOutlined, EyeOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
 import { requirementService } from '@/services/requirement.service'
 import type { Requirement } from '@/shared/types/api'
+import { EditableCell } from '@/shared/components/editable-cell'
 
 interface RequirementRecord extends Requirement {
   key: string
@@ -24,6 +25,17 @@ export function DevelopmentPage() {
     pageSize: 20,
     total: 0,
   })
+
+  // 更新预估工期
+  const handleUpdateDuration = async (id: number, months: number | null) => {
+    await requirementService.updateRequirement(id, { estimated_duration_months: months ?? undefined })
+    // 更新本地状态
+    setRequirements((prev) =>
+      prev.map((req) =>
+        req.id === id ? { ...req, estimated_duration_months: months ?? undefined } : req
+      )
+    )
+  }
 
   const developmentColumns: ColumnsType<RequirementRecord> = useMemo(
     () => [
@@ -89,8 +101,10 @@ export function DevelopmentPage() {
         title: '预估工期',
         dataIndex: 'estimated_duration_months',
         key: 'estimated_duration_months',
-        width: 100,
-        render: (months: number) => (months ? `${months}月` : '-'),
+        width: 120,
+        render: (months: number | null, record: RequirementRecord) => (
+          <EditableCell value={months} recordId={record.id} onSave={handleUpdateDuration} />
+        ),
       },
       {
         title: '分发时间',
