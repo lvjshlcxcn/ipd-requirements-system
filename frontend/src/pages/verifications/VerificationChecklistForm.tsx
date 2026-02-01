@@ -89,18 +89,15 @@ const VerificationChecklistForm: React.FC<VerificationChecklistFormProps> = ({
       navigate(`/requirements/${requirementId}/verification`);
     },
     onError: (error) => {
+      console.error('[updateMutation] 保存失败:', error);
       message.error('保存失败');
-      console.error(error);
+    },
+    onSettled: () => {
+      setSubmitting(false);
     },
   });
 
   useEffect(() => {
-    console.log('[VerificationChecklistForm] useEffect触发:', {
-      mode,
-      checklistId,
-      requirementId,
-      shouldLoad: mode === 'edit' || mode === 'view'
-    });
     if (mode === 'edit' || mode === 'view') {
       loadChecklist();
     }
@@ -119,39 +116,22 @@ const VerificationChecklistForm: React.FC<VerificationChecklistFormProps> = ({
 
     try {
       setLoading(true);
-      console.log('[VerificationChecklistForm] 开始加载验证清单:', {
-        checklistId,
-        requirementId,
-        mode
-      });
-
       // 使用新的API直接获取单个清单
       const target = await verificationService.getChecklist(
         parseInt(requirementId),
         parseInt(checklistId)
       );
 
-      console.log('[VerificationChecklistForm] API返回的数据:', target);
-
       if (target) {
-        console.log('[VerificationChecklistForm] 设置checklist状态:', target);
         setChecklist(target);
         // 确保 checklist_items 总是数组，添加防御性检查
         const items = Array.isArray(target.checklist_items) ? target.checklist_items : [];
-        console.log('[VerificationChecklistForm] 检查项列表:', items);
         setChecklistItems(items);
-
-        console.log('[VerificationChecklistForm] 设置表单值:', {
-          verification_type: target.verification_type,
-          checklist_name: target.checklist_name,
-        });
         form.setFieldsValue({
           verification_type: target.verification_type,
           checklist_name: target.checklist_name,
         });
-        console.log('[VerificationChecklistForm] 数据加载完成');
       } else {
-        console.error('[VerificationChecklistForm] API返回null或undefined');
         message.error('未找到验证清单');
       }
     } catch (error) {
@@ -212,8 +192,8 @@ const VerificationChecklistForm: React.FC<VerificationChecklistFormProps> = ({
         updateMutation.mutate({ checklistItems });
       }
     } catch (error) {
+      console.error('[VerificationChecklistForm] 表单验证失败:', error);
       message.error('保存失败');
-      console.error(error);
       setSubmitting(false);
     }
   };
