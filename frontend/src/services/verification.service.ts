@@ -50,19 +50,42 @@ export interface VerificationSummary {
   not_started: number;
 }
 
+export interface VerificationListResponse {
+  data: VerificationChecklist[];
+  total: number;
+  skip: number;
+  limit: number;
+  page: number;
+  pages: number;
+}
+
 class VerificationService {
   /**
-   * 获取需求的所有验证清单
+   * 获取需求的所有验证清单（带分页）
    */
   async getVerifications(
     requirementId: number,
-    verificationType?: string
-  ): Promise<VerificationChecklist[]> {
-    const params = verificationType ? { verification_type: verificationType } : {};
+    options?: {
+      verificationType?: string;
+      skip?: number;
+      limit?: number;
+    }
+  ): Promise<VerificationListResponse> {
+    const params: Record<string, any> = {};
+    if (options?.verificationType) {
+      params.verification_type = options.verificationType;
+    }
+    if (options?.skip !== undefined) {
+      params.skip = options.skip;
+    }
+    if (options?.limit !== undefined) {
+      params.limit = options.limit;
+    }
+
     const response: any = await api.get(`/requirements/${requirementId}/verification`, { params });
-    // 后端返回 {success: true, data: [...]}, API拦截器返回 response.data
-    // 所以 response 是 {success: true, data: [...]}
-    return response.data || [];
+    // 后端返回 {success: true, data: [...], total, skip, limit, page, pages}
+    // API拦截器已返回 response.data，所以 response 是完整的后端响应
+    return response || { data: [], total: 0, skip: 0, limit: 10, page: 1, pages: 0 };
   }
 
   /**

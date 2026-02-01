@@ -14,6 +14,7 @@ import {
   Statistic,
   Row,
   Col,
+  Pagination,
 } from 'antd';
 import {
   PlusOutlined,
@@ -23,7 +24,7 @@ import {
   FileTextOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import verificationService from '../../services/verification.service';
+import verificationService, { VerificationListResponse } from '../../services/verification.service';
 
 const { Title, Text } = Typography;
 
@@ -60,13 +61,22 @@ const VerificationListPage: React.FC = () => {
   const { requirementId } = useParams<{ requirementId: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = React.useState('all');
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const pageSize = 10;
 
   // 使用 useQuery 获取验证清单和摘要
-  const { data: checklists = [], isLoading: checklistsLoading } = useQuery({
-    queryKey: ['verifications', requirementId],
-    queryFn: () => verificationService.getVerifications(parseInt(requirementId!)),
+  const { data: response, isLoading: checklistsLoading } = useQuery({
+    queryKey: ['verifications', requirementId, currentPage, activeTab],
+    queryFn: () => verificationService.getVerifications(parseInt(requirementId!), {
+      skip: (currentPage - 1) * pageSize,
+      limit: pageSize,
+      verificationType: activeTab === 'all' ? undefined : activeTab,
+    }),
     enabled: !!requirementId,
   });
+
+  const checklists = response?.data || [];
+  const total = response?.total || 0;
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['verificationSummary', requirementId],
@@ -91,11 +101,15 @@ const VerificationListPage: React.FC = () => {
     navigate(`/requirements/${requirementId}/verification/${checklistId}/edit`);
   };
 
-  /** 根据当前tab过滤清单 */
-  const getFilteredChecklists = () => {
-    if (!checklists) return [];
-    if (activeTab === 'all') return checklists;
-    return checklists.filter((c) => c.verification_type === activeTab);
+  /** 页码改变 */
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  /** Tab 改变时重置页码 */
+  const handleTabChange = (key: string) => {
+    setActiveTab(key);
+    setCurrentPage(1);
   };
 
   /** 渲染验证结果标签 */
@@ -174,26 +188,27 @@ const VerificationListPage: React.FC = () => {
       >
         <Tabs
           activeKey={activeTab}
-          onChange={setActiveTab}
+          onChange={handleTabChange}
           items={[
-            { key: 'all', label: `全部 (${checklists?.length || 0})` },
-            { key: 'fat', label: `FAT (${checklists?.filter(c => c.verification_type === 'fat').length || 0})` },
-            { key: 'sat', label: `SAT (${checklists?.filter(c => c.verification_type === 'sat').length || 0})` },
-            { key: 'uat', label: `UAT (${checklists?.filter(c => c.verification_type === 'uat').length || 0})` },
-            { key: 'prototype', label: `原型 (${checklists?.filter(c => c.verification_type === 'prototype').length || 0})` },
-            { key: 'test', label: `测试 (${checklists?.filter(c => c.verification_type === 'test').length || 0})` },
+            { key: 'all', label: `全部 (${total || 0})` },
+            { key: 'fat', label: `FAT` },
+            { key: 'sat', label: `SAT` },
+            { key: 'uat', label: `UAT` },
+            { key: 'prototype', label: `原型` },
+            { key: 'test', label: `测试` },
           ]}
         />
 
-        {getFilteredChecklists().length === 0 ? (
+        {checklists.length === 0 ? (
           <Empty
             description="暂无验证清单"
             style={{ margin: '40px 0' }}
           />
         ) : (
-          <List
-            dataSource={getFilteredChecklists()}
-            renderItem={(item) => (
+          <>
+            <List
+              dataSource={checklists}
+              renderItem={(item) => (
               <List.Item
                 actions={[
                   <Button key="view" type="link" onClick={() => handleViewDetail(item.id)}>
@@ -232,6 +247,22 @@ const VerificationListPage: React.FC = () => {
               </List.Item>
             )}
           />
+
+          {/* 分页组件 */}
+          {total > 0 && (
+            <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={total}
+                onChange={handlePageChange}
+                showSizeChanger={false}
+                showTotal={(total) => `共 ${total} 条`}
+                showQuickJumper
+              />
+            </div>
+          )}
+        </>
         )}
       </Card>
     </div>

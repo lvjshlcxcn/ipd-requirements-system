@@ -55,23 +55,46 @@ router = APIRouter(prefix="/requirements/{requirement_id}/verification", tags=["
 async def get_verifications(
     requirement_id: int,
     verification_type: Optional[str] = Query(None),
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(10, ge=1, le=100, description="Number of records per page"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional = Depends(lambda: None),
 ):
-    """Get verification checklists for a requirement."""
+    """Get verification checklists for a requirement with pagination."""
+    from sqlalchemy import select, func
+
     repo = BaseRepository(VerificationChecklist, db)
+
+    # 先获取总数
+    count_query = select(func.count(VerificationChecklist.id))
+    count_query = count_query.where(VerificationChecklist.requirement_id == requirement_id)
+    if verification_type:
+        count_query = count_query.where(VerificationChecklist.verification_type == verification_type)
+
+    count_result = await db.execute(count_query)
+    total = count_result.scalar()
+
+    # 获取分页数据
     query = repo._get_query()
     query = query.where(VerificationChecklist.requirement_id == requirement_id)
 
     if verification_type:
         query = query.where(VerificationChecklist.verification_type == verification_type)
 
+    query = query.order_by(VerificationChecklist.created_at.desc())
+    query = query.offset(skip).limit(limit)
+
     result = await db.execute(query)
     checklists = list(result.scalars().all())
 
     return {
         "success": True,
-        "data": [serialize_checklist(c) for c in checklists]
+        "data": [serialize_checklist(c) for c in checklists],
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "page": (skip // limit) + 1,
+        "pages": (total + limit - 1) // limit
     }
 
 
