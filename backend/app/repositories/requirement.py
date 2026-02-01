@@ -254,6 +254,9 @@ class RequirementRepository:
         """
         Get requirement count grouped by status.
 
+        Note: 'implementing' status includes requirements that are distributed
+        with target_type='charter' (i.e., requirements in development page).
+
         Returns:
             Dictionary with status counts
         """
@@ -280,6 +283,20 @@ class RequirementRepository:
         for status, count in result:
             if status in stats:
                 stats[status] = count
+
+        # 业务规则：已分发且目标为charter的需求计入"开发中"状态
+        # 这些需求已进入需求开发页面
+        distributed_charter_stmt = (
+            select(func.count(Requirement.id))
+            .where(
+                and_(
+                    Requirement.status == "distributed",
+                    Requirement.target_type == "charter"
+                )
+            )
+        )
+        distributed_charter_count = self.db.execute(distributed_charter_stmt).scalar() or 0
+        stats["implementing"] = distributed_charter_count
 
         return stats
 

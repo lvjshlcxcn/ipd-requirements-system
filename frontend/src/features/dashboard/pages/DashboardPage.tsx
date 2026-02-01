@@ -10,10 +10,12 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import api from '@/services/api'
+import { requirementService } from '@/services/requirement.service'
 
 export function DashboardPage() {
   const [stats, setStats] = useState<any>(null)
   const [rtmStats, setRtmStats] = useState<any>(null)
+  const [inDevelopmentCount, setInDevelopmentCount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -26,8 +28,37 @@ export function DashboardPage() {
         // 获取RTM统计
         const rtmResponse = await api.get('/rtm/statistics')
         setRtmStats(rtmResponse?.data)
+
+        // 获取需求开发模块的统计数据（已分发且目标为charter的需求）
+        // 这个数量等于需求开发列表中的总数（status=distributed + target_type=charter）
+        console.log('[Dashboard] 开始获取开发中需求数据...')
+        const devResponse = await requirementService.getRequirements({
+          status: 'distributed',
+          target_type: 'charter',
+          page: 1,
+          page_size: 1,  // 只需要count，不获取实际数据
+        })
+        console.log('[Dashboard] 完整响应:', devResponse)
+        console.log('[Dashboard] 响应数据结构:', JSON.stringify(devResponse, null, 2))
+
+        // 尝试多种方式获取 total
+        let totalCount = 0
+        if (devResponse && typeof devResponse === 'object') {
+          if ((devResponse as any).data?.total !== undefined) {
+            totalCount = (devResponse as any).data.total
+            console.log('[Dashboard] 方式1 - devResponse.data.total:', totalCount)
+          } else if ((devResponse as any).total !== undefined) {
+            totalCount = (devResponse as any).total
+            console.log('[Dashboard] 方式2 - devResponse.total:', totalCount)
+          } else {
+            console.warn('[Dashboard] 无法找到 total 字段，devResponse keys:', Object.keys(devResponse))
+          }
+        }
+        console.log('[Dashboard] 最终开发中数量:', totalCount)
+        setInDevelopmentCount(totalCount)
       } catch (error) {
         console.error('Failed to fetch stats:', error)
+        console.error('[Dashboard] 获取开发中数据失败:', error)
       } finally {
         setLoading(false)
       }
@@ -63,7 +94,15 @@ export function DashboardPage() {
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic title="进行中" value={(stats?.by_status?.analyzing || 0) + (stats?.by_status?.implementing || 0)} />
+              <Statistic
+                title="进行中"
+                value={(stats?.by_status?.analyzing || 0) + inDevelopmentCount}
+                suffix={
+                  <span style={{ fontSize: 14, color: '#999' }}>
+                    (分析中: {stats?.by_status?.analyzing || 0} + 开发中: {inDevelopmentCount})
+                  </span>
+                }
+              />
             </Card>
           </Col>
           <Col span={6}>
