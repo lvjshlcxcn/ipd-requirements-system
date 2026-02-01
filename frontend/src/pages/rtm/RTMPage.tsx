@@ -26,7 +26,7 @@ export const RTMPage: React.FC = () => {
   const [matrix, setMatrix] = useState<TraceabilityMatrix[]>([])
   const [loading, setLoading] = useState(false)
   const [linkModalVisible, setLinkModalVisible] = useState(false)
-  const [selectedRequirement, setSelectedRequirement] = useState<number | null>(null)
+  const [selectedRequirement, setSelectedRequirement] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [linkForm] = Form.useForm()
 
@@ -121,10 +121,11 @@ export const RTMPage: React.FC = () => {
   const columns = [
     {
       title: '需求ID',
-      dataIndex: 'requirement_id',
-      key: 'requirement_id',
-      width: 100,
+      dataIndex: 'requirement_no',
+      key: 'requirement_no',
+      width: 150,
       fixed: 'left' as const,
+      render: (text: string) => <Text code style={{ fontFamily: 'monospace', fontSize: '12px' }}>{text}</Text>
     },
     {
       title: '需求标题',
@@ -239,7 +240,7 @@ export const RTMPage: React.FC = () => {
             size="small"
             icon={<LinkOutlined />}
             onClick={() => {
-              setSelectedRequirement(record.requirement_id)
+              setSelectedRequirement(record.requirement_no)
               setLinkModalVisible(true)
             }}
           >
@@ -295,7 +296,7 @@ export const RTMPage: React.FC = () => {
             <Table
               columns={columns}
               dataSource={filteredMatrix}
-              rowKey="requirement_id"
+              rowKey="requirement_no"
               scroll={{ x: 1200 }}
               pagination={{
                 pageSize: 20,

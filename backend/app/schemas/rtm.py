@@ -51,7 +51,7 @@ class TraceabilityItem(BaseModel):
 class TraceabilityMatrix(BaseModel):
     """需求追溯矩阵 Schema."""
 
-    requirement_id: int
+    requirement_no: str  # 业务需求编号 (REQ-2025-0001)
     requirement_title: str
     design_items: List[TraceabilityItem] = []
     code_items: List[TraceabilityItem] = []

@@ -64,7 +64,7 @@ class RTMService:
 
             matrix.append(
                 TraceabilityMatrix(
-                    requirement_id=req.id,
+                    requirement_no=req.requirement_no,  # 使用业务需求编号
                     requirement_title=req.title or f"需求 {req.requirement_no}",
                     design_items=design_items,
                     code_items=code_items,
@@ -118,7 +118,7 @@ class RTMService:
         ]
 
         return TraceabilityMatrix(
-            requirement_id=req.id,
+            requirement_no=req.requirement_no,  # 使用业务需求编号
             requirement_title=req.title or f"需求 {req.requirement_no}",
             design_items=design_items,
             code_items=code_items,
