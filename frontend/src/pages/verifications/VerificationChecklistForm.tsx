@@ -108,10 +108,10 @@ const VerificationChecklistForm: React.FC<VerificationChecklistFormProps> = ({
 
     try {
       setLoading(true);
-      const checklists = await verificationService.getVerifications(
+      const response = await verificationService.getVerifications(
         parseInt(requirementId)
       );
-      const target = checklists.find((c) => c.id === parseInt(checklistId));
+      const target = response.data.find((c) => c.id === parseInt(checklistId));
       if (target) {
         setChecklist(target);
         setChecklistItems(target.checklist_items);
