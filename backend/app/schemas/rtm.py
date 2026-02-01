@@ -4,12 +4,33 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
+class AttachmentInfo(BaseModel):
+    """附件信息 Schema."""
+
+    id: int
+    file_name: str
+    file_path: str
+    file_size: Optional[int] = None
+    file_type: Optional[str] = None
+    mime_type: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class TraceabilityLinkBase(BaseModel):
     """追溯关联基础 Schema."""
 
+    # 文档ID字段（保留用于向后兼容和手动输入）
     design_id: Optional[str] = Field(None, max_length=100, description="设计文档ID")
     code_id: Optional[str] = Field(None, max_length=100, description="代码ID")
     test_id: Optional[str] = Field(None, max_length=100, description="测试用例ID")
+
+    # 附件关联字段（新增：用于文件上传）
+    design_attachment_id: Optional[int] = Field(None, description="设计文档附件ID")
+    code_attachment_id: Optional[int] = Field(None, description="代码附件ID")
+    test_attachment_id: Optional[int] = Field(None, description="测试用例附件ID")
+
     notes: Optional[str] = Field(None, description="备注")
 
 
@@ -35,6 +56,11 @@ class TraceabilityLinkResponse(TraceabilityLinkBase):
     created_at: datetime
     updated_at: datetime
 
+    # 附件详细信息（响应时包含）
+    design_attachment: Optional[AttachmentInfo] = None
+    code_attachment: Optional[AttachmentInfo] = None
+    test_attachment: Optional[AttachmentInfo] = None
+
     class Config:
         from_attributes = True
 
@@ -47,10 +73,21 @@ class TraceabilityItem(BaseModel):
     code_id: Optional[str] = None
     test_id: Optional[str] = None
 
+    # 附件ID（用于前端显示和下载）
+    design_attachment_id: Optional[int] = None
+    code_attachment_id: Optional[int] = None
+    test_attachment_id: Optional[int] = None
+
+    # 附件详细信息
+    design_attachment: Optional[AttachmentInfo] = None
+    code_attachment: Optional[AttachmentInfo] = None
+    test_attachment: Optional[AttachmentInfo] = None
+
 
 class TraceabilityMatrix(BaseModel):
     """需求追溯矩阵 Schema."""
 
+    requirement_id: int  # 数据库ID，用于创建关联
     requirement_no: str  # 业务需求编号 (REQ-2025-0001)
     requirement_title: str
     design_items: List[TraceabilityItem] = []

@@ -12,21 +12,29 @@ import {
   Form,
   message,
   Spin,
+  Upload,
 } from 'antd'
 import {
   DownloadOutlined,
   LinkOutlined,
   DisconnectOutlined,
+  UploadOutlined,
+  FileOutlined,
 } from '@ant-design/icons'
-import { rtmService, TraceabilityMatrix } from '@/services/rtm.service'
+import type { UploadProps } from 'antd'
+import { rtmService, TraceabilityMatrix, TraceabilityItem } from '@/services/rtm.service'
 
-const { Title, Text } = Typography
+const { Title, Text, Dragger } = Typography
 
 export const RTMPage: React.FC = () => {
   const [matrix, setMatrix] = useState<TraceabilityMatrix[]>([])
   const [loading, setLoading] = useState(false)
   const [linkModalVisible, setLinkModalVisible] = useState(false)
+  const [uploadModalVisible, setUploadModalVisible] = useState(false)
   const [selectedRequirement, setSelectedRequirement] = useState<string | null>(null)
+  const [selectedRequirementId, setSelectedRequirementId] = useState<number | null>(null)
+  const [uploadType, setUploadType] = useState<'design' | 'code' | 'test'>('design')
+  const [uploading, setUploading] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [linkForm] = Form.useForm()
 
@@ -83,6 +91,44 @@ export const RTMPage: React.FC = () => {
     })
   }
 
+  const handleOpenUploadModal = (requirementNo: string, requirementId: number, type: 'design' | 'code' | 'test') => {
+    setSelectedRequirement(requirementNo)
+    setSelectedRequirementId(requirementId)
+    setUploadType(type)
+    setUploadModalVisible(true)
+  }
+
+  const handleUpload: UploadProps['customRequest'] = async (options) => {
+    const { file, onSuccess, onError } = options
+    if (selectedRequirementId === null) {
+      message.error('未选择需求')
+      onError?.(new Error('未选择需求'))
+      return
+    }
+
+    setUploading(true)
+    try {
+      // Ant Design Upload 组件的 file 对象包含 originFileObj 属性
+      const originalFile = (file as any).originFileObj || file
+      await rtmService.uploadDocumentAndLink(selectedRequirementId, uploadType, originalFile as File)
+      message.success('上传成功')
+      onSuccess?.(null)
+      setUploadModalVisible(false)
+      await fetchMatrix()
+    } catch (error) {
+      console.error('Upload error:', error)
+      message.error('上传失败')
+      onError?.(error as Error)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDownloadAttachment = (attachmentId: number) => {
+    const url = rtmService.getAttachmentDownloadUrl(attachmentId)
+    window.open(url, '_blank')
+  }
+
   const handleExport = async (format: 'excel' | 'pdf' = 'excel') => {
     try {
       const { data } = await rtmService.exportMatrix(format)
@@ -137,24 +183,45 @@ export const RTMPage: React.FC = () => {
     {
       title: '设计文档',
       key: 'design',
-      width: 150,
+      width: 280,
       render: (_: any, record: TraceabilityMatrix) => (
-        <Space direction="vertical" size="small">
+        <Space direction="vertical" size="small" style={{ width: '100%' }}>
           {record.design_items.length > 0 ? (
             record.design_items.map((item) => (
-              <Space key={item.id} size="small">
-                <Tag>{item.design_id}</Tag>
+              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                {item.design_attachment ? (
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<FileOutlined />}
+                    onClick={() => handleDownloadAttachment(item.design_attachment!.id)}
+                    style={{ flex: 1, minWidth: 0, padding: '0 4px', textAlign: 'left' }}
+                    ellipsis
+                  >
+                    {item.design_attachment.file_name}
+                  </Button>
+                ) : (
+                  <Tag>{item.design_id}</Tag>
+                )}
                 <Button
                   type="link"
                   size="small"
                   danger
                   icon={<DisconnectOutlined />}
                   onClick={() => handleDeleteLink(item.id)}
+                  style={{ flexShrink: 0 }}
                 />
-              </Space>
+              </div>
             ))
           ) : (
-            <Tag color="error">无</Tag>
+            <Button
+              type="dashed"
+              size="small"
+              icon={<UploadOutlined />}
+              onClick={() => handleOpenUploadModal(record.requirement_no, record.requirement_id, 'design')}
+            >
+              上传设计文档
+            </Button>
           )}
         </Space>
       ),
@@ -162,24 +229,45 @@ export const RTMPage: React.FC = () => {
     {
       title: '代码',
       key: 'code',
-      width: 150,
+      width: 280,
       render: (_: any, record: TraceabilityMatrix) => (
-        <Space direction="vertical" size="small">
+        <Space direction="vertical" size="small" style={{ width: '100%' }}>
           {record.code_items.length > 0 ? (
             record.code_items.map((item) => (
-              <Space key={item.id} size="small">
-                <Tag>{item.code_id}</Tag>
+              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                {item.code_attachment ? (
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<FileOutlined />}
+                    onClick={() => handleDownloadAttachment(item.code_attachment!.id)}
+                    style={{ flex: 1, minWidth: 0, padding: '0 4px', textAlign: 'left' }}
+                    ellipsis
+                  >
+                    {item.code_attachment.file_name}
+                  </Button>
+                ) : (
+                  <Tag>{item.code_id}</Tag>
+                )}
                 <Button
                   type="link"
                   size="small"
                   danger
                   icon={<DisconnectOutlined />}
                   onClick={() => handleDeleteLink(item.id)}
+                  style={{ flexShrink: 0 }}
                 />
-              </Space>
+              </div>
             ))
           ) : (
-            <Tag color="error">无</Tag>
+            <Button
+              type="dashed"
+              size="small"
+              icon={<UploadOutlined />}
+              onClick={() => handleOpenUploadModal(record.requirement_no, record.requirement_id, 'code')}
+            >
+              上传代码
+            </Button>
           )}
         </Space>
       ),
@@ -187,24 +275,45 @@ export const RTMPage: React.FC = () => {
     {
       title: '测试用例',
       key: 'test',
-      width: 150,
+      width: 280,
       render: (_: any, record: TraceabilityMatrix) => (
-        <Space direction="vertical" size="small">
+        <Space direction="vertical" size="small" style={{ width: '100%' }}>
           {record.test_items.length > 0 ? (
             record.test_items.map((item) => (
-              <Space key={item.id} size="small">
-                <Tag>{item.test_id}</Tag>
+              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                {item.test_attachment ? (
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<FileOutlined />}
+                    onClick={() => handleDownloadAttachment(item.test_attachment!.id)}
+                    style={{ flex: 1, minWidth: 0, padding: '0 4px', textAlign: 'left' }}
+                    ellipsis
+                  >
+                    {item.test_attachment.file_name}
+                  </Button>
+                ) : (
+                  <Tag>{item.test_id}</Tag>
+                )}
                 <Button
                   type="link"
                   size="small"
                   danger
                   icon={<DisconnectOutlined />}
                   onClick={() => handleDeleteLink(item.id)}
+                  style={{ flexShrink: 0 }}
                 />
-              </Space>
+              </div>
             ))
           ) : (
-            <Tag color="error">无</Tag>
+            <Button
+              type="dashed"
+              size="small"
+              icon={<UploadOutlined />}
+              onClick={() => handleOpenUploadModal(record.requirement_no, record.requirement_id, 'test')}
+            >
+              上传测试用例
+            </Button>
           )}
         </Space>
       ),
@@ -227,27 +336,6 @@ export const RTMPage: React.FC = () => {
           return getStatusTag('missing')
         }
       },
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 110,
-      fixed: 'right' as const,
-      render: (_: any, record: TraceabilityMatrix) => (
-        <Space size="small">
-          <Button
-            type="primary"
-            size="small"
-            icon={<LinkOutlined />}
-            onClick={() => {
-              setSelectedRequirement(record.requirement_no)
-              setLinkModalVisible(true)
-            }}
-          >
-            添加关联
-          </Button>
-        </Space>
-      ),
     },
   ]
 
@@ -297,7 +385,7 @@ export const RTMPage: React.FC = () => {
               columns={columns}
               dataSource={filteredMatrix}
               rowKey="requirement_no"
-              scroll={{ x: 1200 }}
+              scroll={{ x: 1400 }}
               pagination={{
                 pageSize: 20,
                 showSizeChanger: true,
@@ -399,6 +487,44 @@ export const RTMPage: React.FC = () => {
             <Input.TextArea rows={3} placeholder="关联说明" />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 上传文档模态框 */}
+      <Modal
+        title={`上传${uploadType === 'design' ? '设计文档' : uploadType === 'code' ? '代码' : '测试用例'}`}
+        open={uploadModalVisible}
+        onCancel={() => setUploadModalVisible(false)}
+        footer={null}
+        destroyOnHidden
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <div>
+            <Text type="secondary">需求编号：{selectedRequirement}</Text>
+          </div>
+          <Upload.Dragger
+            name="file"
+            disabled={uploading}
+            multiple={false}
+            customRequest={handleUpload}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar,.png,.jpg,.jpeg"
+            beforeUpload={(file) => {
+              const maxSize = 50 * 1024 * 1024 // 50MB
+              if (file.size > maxSize) {
+                message.error('文件大小不能超过50MB')
+                return Upload.LIST_IGNORE
+              }
+              return true
+            }}
+          >
+            <p className="ant-upload-drag-icon">
+              <UploadOutlined />
+            </p>
+            <p className="ant-upload-text">点击或拖拽文件到此区域上传</p>
+            <p className="ant-upload-hint">
+              支持单个文件上传，最大50MB
+            </p>
+          </Upload.Dragger>
+        </Space>
       </Modal>
     </div>
   )

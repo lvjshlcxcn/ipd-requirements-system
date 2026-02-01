@@ -1,7 +1,7 @@
 """Attachments API endpoints."""
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File as FastAPIFile
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File as FastAPIFile, Form
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -24,6 +24,49 @@ def get_attachment_service(db: Session = Depends(get_db)) -> AttachmentService:
 # ========================================================================
 # Upload Endpoints
 # ========================================================================
+
+@router.post("/upload", response_model=AttachmentResponse)
+async def upload_attachment(
+    file: UploadFile = FastAPIFile(...),
+    entity_type: str = Form(..., description="Entity type (e.g., 'requirement', 'rtm')"),
+    entity_id: int = Form(..., description="Entity ID"),
+    description: str = Form(None, description="Optional file description"),
+    service: AttachmentService = Depends(get_attachment_service),
+):
+    """
+    Upload an attachment for any entity type.
+
+    - **file**: File to upload (max 50MB)
+    - **entity_type**: Entity type (e.g., 'requirement', 'rtm')
+    - **entity_id**: Entity ID
+    - **description**: Optional file description
+
+    Returns:
+        Created attachment details
+    """
+    # Read file content
+    file_content = await file.read()
+
+    # Get file extension
+    file_type = None
+    if "." in file.filename:
+        file_type = file.filename.rsplit(".", 1)[-1].lower()
+
+    try:
+        attachment = service.upload_attachment(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            file_name=file.filename,
+            file_content=file_content,
+            file_type=file_type,
+            mime_type=file.content_type,
+            uploaded_by=None,  # TODO: Get from JWT token
+            description=description,
+        )
+        return AttachmentResponse.model_validate(attachment)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.post("/requirements/{requirement_id}", response_model=AttachmentResponse)
 async def upload_requirement_attachment(

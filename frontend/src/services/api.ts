@@ -27,6 +27,12 @@ api.interceptors.request.use(
     }
     // Add tenant ID header
     config.headers['X-Tenant-ID'] = '1'
+
+    // 如果是 FormData，删除 Content-Type 让浏览器自动设置
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+    }
+
     return config
   },
   (error) => {

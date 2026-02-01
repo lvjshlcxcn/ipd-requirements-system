@@ -11,7 +11,7 @@ from sqlalchemy.sql import table, column
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '20260128_migrate_invest_to_scoring'
+revision = '20260128_invest_score'
 down_revision = '20260125_add_prompt_templates'
 branch_labels = None
 depends_on = None

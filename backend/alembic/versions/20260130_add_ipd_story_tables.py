@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers
 revision = '20260130_add_ipd_story'
-down_revision = None  # 设置为你的上一个迁移版本
+down_revision = '20260128_invest_score'
 branch_labels = None
 depends_on = None
 

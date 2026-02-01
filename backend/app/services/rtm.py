@@ -1,14 +1,16 @@
 """RTM service for business logic."""
 from typing import List, Optional, Dict, Any
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.rtm import TraceabilityLink
 from app.models.requirement import Requirement
+from app.models.attachment import Attachment
 from app.schemas.rtm import (
     TraceabilityLinkCreate,
     TraceabilityLinkUpdate,
     TraceabilityMatrix,
     TraceabilityItem,
+    AttachmentInfo,
 )
 
 
@@ -42,28 +44,59 @@ class RTMService:
         # 构建追溯矩阵
         matrix = []
         for req in requirements:
-            # 获取该需求的所有追溯关联
-            links = db.query(TraceabilityLink).filter(
+            # 获取该需求的所有追溯关联（预加载附件信息）
+            links = db.query(TraceabilityLink).options(
+                joinedload(TraceabilityLink.design_attachment),
+                joinedload(TraceabilityLink.code_attachment),
+                joinedload(TraceabilityLink.test_attachment)
+            ).filter(
                 TraceabilityLink.requirement_id == req.id,
                 TraceabilityLink.tenant_id == tenant_id,
             ).all()
 
             # 分类关联项
-            design_items = [
-                TraceabilityItem(id=link.id, design_id=link.design_id)
-                for link in links if link.design_id
-            ]
-            code_items = [
-                TraceabilityItem(id=link.id, code_id=link.code_id)
-                for link in links if link.code_id
-            ]
-            test_items = [
-                TraceabilityItem(id=link.id, test_id=link.test_id)
-                for link in links if link.test_id
-            ]
+            design_items = []
+            code_items = []
+            test_items = []
+
+            for link in links:
+                # 构建附件信息
+                design_att = AttachmentInfo.model_validate(link.design_attachment) if link.design_attachment else None
+                code_att = AttachmentInfo.model_validate(link.code_attachment) if link.code_attachment else None
+                test_att = AttachmentInfo.model_validate(link.test_attachment) if link.test_attachment else None
+
+                # 根据关联类型分类
+                if link.design_id or link.design_attachment_id:
+                    design_items.append(
+                        TraceabilityItem(
+                            id=link.id,
+                            design_id=link.design_id,
+                            design_attachment_id=link.design_attachment_id,
+                            design_attachment=design_att
+                        )
+                    )
+                if link.code_id or link.code_attachment_id:
+                    code_items.append(
+                        TraceabilityItem(
+                            id=link.id,
+                            code_id=link.code_id,
+                            code_attachment_id=link.code_attachment_id,
+                            code_attachment=code_att
+                        )
+                    )
+                if link.test_id or link.test_attachment_id:
+                    test_items.append(
+                        TraceabilityItem(
+                            id=link.id,
+                            test_id=link.test_id,
+                            test_attachment_id=link.test_attachment_id,
+                            test_attachment=test_att
+                        )
+                    )
 
             matrix.append(
                 TraceabilityMatrix(
+                    requirement_id=req.id,  # 数据库ID
                     requirement_no=req.requirement_no,  # 使用业务需求编号
                     requirement_title=req.title or f"需求 {req.requirement_no}",
                     design_items=design_items,
@@ -99,25 +132,54 @@ class RTMService:
         if not req:
             return None
 
-        links = db.query(TraceabilityLink).filter(
+        links = db.query(TraceabilityLink).options(
+            joinedload(TraceabilityLink.design_attachment),
+            joinedload(TraceabilityLink.code_attachment),
+            joinedload(TraceabilityLink.test_attachment)
+        ).filter(
             TraceabilityLink.requirement_id == requirement_id,
             TraceabilityLink.tenant_id == tenant_id,
         ).all()
 
-        design_items = [
-            TraceabilityItem(id=link.id, design_id=link.design_id)
-            for link in links if link.design_id
-        ]
-        code_items = [
-            TraceabilityItem(id=link.id, code_id=link.code_id)
-            for link in links if link.code_id
-        ]
-        test_items = [
-            TraceabilityItem(id=link.id, test_id=link.test_id)
-            for link in links if link.test_id
-        ]
+        design_items = []
+        code_items = []
+        test_items = []
+
+        for link in links:
+            design_att = AttachmentInfo.model_validate(link.design_attachment) if link.design_attachment else None
+            code_att = AttachmentInfo.model_validate(link.code_attachment) if link.code_attachment else None
+            test_att = AttachmentInfo.model_validate(link.test_attachment) if link.test_attachment else None
+
+            if link.design_id or link.design_attachment_id:
+                design_items.append(
+                    TraceabilityItem(
+                        id=link.id,
+                        design_id=link.design_id,
+                        design_attachment_id=link.design_attachment_id,
+                        design_attachment=design_att
+                    )
+                )
+            if link.code_id or link.code_attachment_id:
+                code_items.append(
+                    TraceabilityItem(
+                        id=link.id,
+                        code_id=link.code_id,
+                        code_attachment_id=link.code_attachment_id,
+                        code_attachment=code_att
+                    )
+                )
+            if link.test_id or link.test_attachment_id:
+                test_items.append(
+                    TraceabilityItem(
+                        id=link.id,
+                        test_id=link.test_id,
+                        test_attachment_id=link.test_attachment_id,
+                        test_attachment=test_att
+                    )
+                )
 
         return TraceabilityMatrix(
+            requirement_id=req.id,  # 数据库ID
             requirement_no=req.requirement_no,  # 使用业务需求编号
             requirement_title=req.title or f"需求 {req.requirement_no}",
             design_items=design_items,
@@ -151,9 +213,35 @@ class RTMService:
         if not req:
             raise ValueError(f"需求 {link_data.requirement_id} 不存在")
 
-        # 至少需要一个追溯项
-        if not any([link_data.design_id, link_data.code_id, link_data.test_id]):
+        # 至少需要一个追溯项（文档ID或附件ID）
+        has_design = link_data.design_id or link_data.design_attachment_id
+        has_code = link_data.code_id or link_data.code_attachment_id
+        has_test = link_data.test_id or link_data.test_attachment_id
+
+        if not any([has_design, has_code, has_test]):
             raise ValueError("至少需要提供一个追溯项（设计文档/代码/测试用例）")
+
+        # 如果提供了附件ID，验证附件存在
+        if link_data.design_attachment_id:
+            att = db.query(Attachment).filter(
+                Attachment.id == link_data.design_attachment_id
+            ).first()
+            if not att:
+                raise ValueError(f"设计文档附件 {link_data.design_attachment_id} 不存在")
+
+        if link_data.code_attachment_id:
+            att = db.query(Attachment).filter(
+                Attachment.id == link_data.code_attachment_id
+            ).first()
+            if not att:
+                raise ValueError(f"代码附件 {link_data.code_attachment_id} 不存在")
+
+        if link_data.test_attachment_id:
+            att = db.query(Attachment).filter(
+                Attachment.id == link_data.test_attachment_id
+            ).first()
+            if not att:
+                raise ValueError(f"测试用例附件 {link_data.test_attachment_id} 不存在")
 
         # 创建关联
         link = TraceabilityLink(
@@ -161,6 +249,9 @@ class RTMService:
             design_id=link_data.design_id,
             code_id=link_data.code_id,
             test_id=link_data.test_id,
+            design_attachment_id=link_data.design_attachment_id,
+            code_attachment_id=link_data.code_attachment_id,
+            test_attachment_id=link_data.test_attachment_id,
             notes=link_data.notes,
             tenant_id=tenant_id,
         )
@@ -205,6 +296,36 @@ class RTMService:
             link.code_id = link_data.code_id
         if link_data.test_id is not None:
             link.test_id = link_data.test_id
+
+        # 更新附件ID字段
+        if link_data.design_attachment_id is not None:
+            # 验证附件存在
+            if link_data.design_attachment_id:
+                att = db.query(Attachment).filter(
+                    Attachment.id == link_data.design_attachment_id
+                ).first()
+                if not att:
+                    raise ValueError(f"设计文档附件 {link_data.design_attachment_id} 不存在")
+            link.design_attachment_id = link_data.design_attachment_id
+
+        if link_data.code_attachment_id is not None:
+            if link_data.code_attachment_id:
+                att = db.query(Attachment).filter(
+                    Attachment.id == link_data.code_attachment_id
+                ).first()
+                if not att:
+                    raise ValueError(f"代码附件 {link_data.code_attachment_id} 不存在")
+            link.code_attachment_id = link_data.code_attachment_id
+
+        if link_data.test_attachment_id is not None:
+            if link_data.test_attachment_id:
+                att = db.query(Attachment).filter(
+                    Attachment.id == link_data.test_attachment_id
+                ).first()
+                if not att:
+                    raise ValueError(f"测试用例附件 {link_data.test_attachment_id} 不存在")
+            link.test_attachment_id = link_data.test_attachment_id
+
         if link_data.notes is not None:
             link.notes = link_data.notes
         if link_data.status is not None:
