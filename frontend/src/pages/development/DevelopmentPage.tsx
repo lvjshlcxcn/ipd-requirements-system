@@ -6,6 +6,7 @@ import { FileTextOutlined, EyeOutlined, DownloadOutlined, ReloadOutlined } from 
 import { requirementService } from '@/services/requirement.service'
 import type { Requirement } from '@/shared/types/api'
 import { EditableCell } from '@/shared/components/editable-cell'
+import { RowCountdown } from '@/shared/components/countdown/RowCountdown'
 
 interface RequirementRecord extends Requirement {
   key: string
@@ -102,8 +103,21 @@ export function DevelopmentPage() {
         dataIndex: 'estimated_duration_months',
         key: 'estimated_duration_months',
         width: 120,
-        render: (months: number | null, record: RequirementRecord) => (
-          <EditableCell value={months} recordId={record.id} onSave={handleUpdateDuration} />
+        render: (days: number | null, record: RequirementRecord) => (
+          <EditableCell value={days} recordId={record.id} onSave={handleUpdateDuration} />
+        ),
+      },
+      {
+        title: '开发倒计时',
+        key: 'countdown',
+        width: 180,
+        render: (_: any, record: RequirementRecord) => (
+          <RowCountdown
+            createdAt={record.created_at}
+            distributedAt={record.updated_at}
+            estimatedDays={record.estimated_duration_months}
+            status={record.status}
+          />
         ),
       },
       {
@@ -271,7 +285,7 @@ export function DevelopmentPage() {
           }}
           onChange={handleTableChange}
           bordered
-          scroll={{ x: 1500 }}
+          scroll={{ x: 1700 }}
           rowKey="key"
         />
       </Card>

@@ -6,6 +6,7 @@ import { requirementService } from '@/services/requirement.service'
 import type { ColumnsType } from 'antd/es/table'
 import { UploadAttachmentModal } from '@/components/requirements/UploadAttachmentModal'
 import { TextInsightModal } from '@/components/insights'
+import { RowCountdown } from '@/shared/components/countdown/RowCountdown'
 // import type { Insight } from '@/types/insight' // 预留功能
 
 interface RequirementListItem {
@@ -16,7 +17,9 @@ interface RequirementListItem {
   source: string
   status: string
   priority: number
-  createdAt: string
+  createdAt: string // 格式化后的创建时间（用于显示）
+  createdAtRaw: string // 原始 ISO 格式创建时间（用于倒计时计算）
+  estimatedDurationMonths?: number | null // 预估工期（月）
 }
 
 const statusMap: Record<string, { text: string; color: string }> = {
@@ -87,6 +90,8 @@ function RequirementListPage() {
           status: item.status,
           priority: item.priority_score || 0,
           createdAt: new Date(item.created_at).toLocaleDateString('zh-CN'),
+          createdAtRaw: item.created_at, // 保留原始 ISO 格式用于倒计时
+          estimatedDurationMonths: item.estimated_duration_months,
         }))
 
         setData(transformedData)
@@ -179,6 +184,28 @@ function RequirementListPage() {
         const color = score >= 80 ? '#ff4d4f' : score >= 60 ? '#faad14' : '#52c41a'
         return <span style={{ color, fontWeight: 'bold' }}>{score}</span>
       },
+    },
+    {
+      title: '预估工期',
+      dataIndex: 'estimatedDurationMonths',
+      key: 'estimatedDurationMonths',
+      width: 120,
+      render: (days: number | null | undefined) => {
+        if (!days) return <span style={{ color: '#999' }}>-</span>
+        return <span>{days} 天</span>
+      },
+    },
+    {
+      title: '开发倒计时',
+      key: 'countdown',
+      width: 180,
+      render: (_: any, record: RequirementListItem) => (
+        <RowCountdown
+          createdAt={record.createdAtRaw}
+          estimatedDays={record.estimatedDurationMonths}
+          status={record.status}
+        />
+      ),
     },
     {
       title: '创建时间',
@@ -318,7 +345,7 @@ function RequirementListPage() {
           columns={columns}
           dataSource={data}
           loading={loading}
-          scroll={{ x: 1500 }}
+          scroll={{ x: 1800 }}
           pagination={{
             ...pagination,
             showSizeChanger: true,
