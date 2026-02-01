@@ -182,6 +182,10 @@ async def create_checklist(
             verified_by=None,
         )
 
+        # 如果有检查项，自动转入进行中状态
+        if checklist_data.checklist_items and len(checklist_data.checklist_items) > 0:
+            checklist = await repo.update(checklist.id, result="in_progress")
+
         # 显式提交事务
         await db.commit()
 
@@ -219,6 +223,10 @@ async def update_checklist(
 
     try:
         updated = await repo.update(checklist_id, checklist_items=checklist_items_json)
+
+        # 如果是未开始状态且有检查项，自动转入进行中
+        if updated and updated.result == "not_started" and checklist_data.checklist_items:
+            updated = await repo.update(checklist_id, result="in_progress")
 
         # 显式提交事务，确保数据保存到数据库
         await db.commit()

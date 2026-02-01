@@ -395,7 +395,8 @@ const VerificationChecklistForm: React.FC<VerificationChecklistFormProps> = ({
               {mode === 'create' ? '创建清单' : '保存修改'}
             </Button>
           )}
-          {(mode === 'edit' || mode === 'view') && checklist && checklist.result === 'in_progress' && (
+          {(mode === 'edit' || mode === 'view') && checklist &&
+           (checklist.result === 'in_progress' || checklist.result === 'partial_passed') && (
             <Button
               type="primary"
               danger
