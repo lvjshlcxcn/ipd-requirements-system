@@ -99,6 +99,28 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
+# Exception handler for all other exceptions
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """Handle all other exceptions with CORS headers."""
+    import traceback
+    print(f"❌ Unhandled exception: {exc}")
+    print(traceback.format_exc())
+
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "success": False,
+            "message": "服务器内部错误",
+            "detail": str(exc) if settings.DEBUG else "Internal server error",
+        },
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
+        }
+    )
+
+
 # Root endpoint
 @app.get("/")
 async def root():
@@ -131,7 +153,8 @@ async def health_check():
 from app.api.v1 import (
     auth, requirements, notifications, analysis, tenant, import_export,
     verification, appeals, distribution, rtm, attachments, insights,
-    prompt_templates, rice, invest, ipd_story,
+    prompt_templates, rice, invest, ipd_story, hello,
+    requirement_review_meetings, migration,
 )
 
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
@@ -147,6 +170,9 @@ app.include_router(rtm.router, prefix=settings.API_V1_PREFIX)
 app.include_router(attachments.router, prefix=settings.API_V1_PREFIX)
 app.include_router(insights.router, prefix=settings.API_V1_PREFIX)
 app.include_router(prompt_templates.router, prefix=settings.API_V1_PREFIX)
+app.include_router(requirement_review_meetings.router, prefix=settings.API_V1_PREFIX)
 app.include_router(rice.router, prefix=settings.API_V1_PREFIX)
 app.include_router(invest.router, prefix=settings.API_V1_PREFIX)
 app.include_router(ipd_story.router, prefix=settings.API_V1_PREFIX)
+app.include_router(hello.router, prefix=settings.API_V1_PREFIX)
+app.include_router(migration.router, prefix=settings.API_V1_PREFIX)  # 临时迁移端点
