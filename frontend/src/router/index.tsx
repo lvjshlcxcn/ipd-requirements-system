@@ -29,6 +29,8 @@ const MainLayout = lazy(() => import('@/shared/components/layout/MainLayout').th
 const SettingsPage = lazy(() => import('@/features/settings/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const IPDStoryFlowPage = lazy(() => import('@/pages/ipd-story/IPDStoryFlowPage').then(m => ({ default: m.IPDStoryFlowPage })))
 const DevelopmentPage = lazy(() => import('@/pages/development/DevelopmentPage').then(m => ({ default: m.DevelopmentPage })))
+const ReviewCenterPage = lazy(() => import('@/pages/review-center/ReviewCenterPage').then(m => ({ default: m.ReviewCenterPage })))
+const ReviewMeetingDetailPage = lazy(() => import('@/pages/review-center/ReviewMeetingDetailPage').then(m => ({ default: m.ReviewMeetingDetailPage })))
 
 function LayoutWrapper() {
   return (
@@ -90,6 +92,21 @@ export function AppRouter() {
             </Suspense>
           } />
           <Route path="/development" element={
+            <Suspense fallback={<PageLoading />}>
+              <DevelopmentPage />
+            </Suspense>
+          } />
+          <Route path="/review-center" element={
+            <Suspense fallback={<PageLoading />}>
+              <ReviewCenterPage />
+            </Suspense>
+          } />
+          <Route path="/review-center/:id" element={
+            <Suspense fallback={<PageLoading />}>
+              <ReviewMeetingDetailPage />
+            </Suspense>
+          } />
+          <Route path="/rtm" element={
             <Suspense fallback={<PageLoading />}>
               <DevelopmentPage />
             </Suspense>

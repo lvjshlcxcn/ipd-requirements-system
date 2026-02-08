@@ -17,6 +17,9 @@ const MainLayout = lazy(() => import('@/shared/components/layout/MainLayout').th
 const SettingsPage = lazy(() => import('@/features/settings/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const IPDStoryFlowPage = lazy(() => import('@/pages/ipd-story/IPDStoryFlowPage').then(m => ({ default: m.IPDStoryFlowPage })))
 const DevelopmentPage = lazy(() => import('@/pages/development/DevelopmentPage').then(m => ({ default: m.DevelopmentPage })))
+const ReviewCenterPage = lazy(() => import('@/pages/review-center/ReviewCenterPage').then(m => ({ default: m.ReviewCenterPage })))
+const ReviewMeetingDetailPage = lazy(() => import('@/pages/review-center/ReviewMeetingDetailPage').then(m => ({ default: m.ReviewMeetingDetailPage })))
+const VoteResultsPage = lazy(() => import('@/pages/review-center/VoteResultsPage').then(m => ({ default: m.VoteResultsPage })))
 
 export const routeConfigs: RouteConfig[] = [
   {
@@ -38,6 +41,9 @@ export const routeConfigs: RouteConfig[] = [
       { path: '/analytics', element: AnalyticsPage, title: '需求分析' },
       { path: '/distribution', element: DistributionPage, title: '需求分发' },
       { path: '/development', element: DevelopmentPage, title: '需求开发' },
+      { path: '/review-center', element: ReviewCenterPage, title: '评审中心' },
+      { path: '/review-center/:id', element: ReviewMeetingDetailPage, title: '会议详情' },
+      { path: '/review-center/results', element: VoteResultsPage, title: '投票结果列表' },
       { path: '/rtm', element: RTMPage, title: '需求追溯矩阵 (RTM)' },
       { path: '/verification', element: VerificationOverviewPage, title: '需求验证' },
       { path: '/ipd-story-flow', element: IPDStoryFlowPage, title: 'IPD需求十问' },
