@@ -326,7 +326,9 @@ class VoteResultData(BaseModel):
 
     id: int
     meeting_id: int
+    meeting_no: Optional[str] = None  # 会议编号
     requirement_id: int
+    requirement_no: Optional[str] = None  # 需求业务编号
     requirement_title: Optional[str] = None
     vote_statistics: Dict[str, Any]
     archived_at: datetime

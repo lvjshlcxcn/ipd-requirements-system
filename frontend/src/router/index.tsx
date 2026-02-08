@@ -31,6 +31,8 @@ const IPDStoryFlowPage = lazy(() => import('@/pages/ipd-story/IPDStoryFlowPage')
 const DevelopmentPage = lazy(() => import('@/pages/development/DevelopmentPage').then(m => ({ default: m.DevelopmentPage })))
 const ReviewCenterPage = lazy(() => import('@/pages/review-center/ReviewCenterPage').then(m => ({ default: m.ReviewCenterPage })))
 const ReviewMeetingDetailPage = lazy(() => import('@/pages/review-center/ReviewMeetingDetailPage').then(m => ({ default: m.ReviewMeetingDetailPage })))
+const VoteResultsPage = lazy(() => import('@/pages/review-center/VoteResultsPage').then(m => ({ default: m.VoteResultsPage })))
+const VoteResultDetailPage = lazy(() => import('@/pages/review-center/VoteResultDetailPage').then(m => ({ default: m.VoteResultDetailPage })))
 
 function LayoutWrapper() {
   return (
@@ -99,6 +101,16 @@ export function AppRouter() {
           <Route path="/review-center" element={
             <Suspense fallback={<PageLoading />}>
               <ReviewCenterPage />
+            </Suspense>
+          } />
+          <Route path="/review-center/results" element={
+            <Suspense fallback={<PageLoading />}>
+              <VoteResultsPage />
+            </Suspense>
+          } />
+          <Route path="/review-center/results/:resultId" element={
+            <Suspense fallback={<PageLoading />}>
+              <VoteResultDetailPage />
             </Suspense>
           } />
           <Route path="/review-center/:id" element={

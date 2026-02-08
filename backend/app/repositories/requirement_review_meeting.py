@@ -11,6 +11,7 @@ from app.models.requirement_review_meeting_attendee import RequirementReviewMeet
 from app.models.requirement_review_meeting_requirement import RequirementReviewMeetingRequirement
 from app.models.requirement_review_vote import RequirementReviewVote
 from app.models.vote_result import VoteResult
+from app.models.requirement import Requirement
 
 
 class RequirementReviewMeetingRepository:
@@ -602,22 +603,66 @@ class RequirementReviewMeetingRepository:
         limit: int = 20
     ) -> tuple[List[VoteResult], int]:
         """Get archived vote results (optionally filtered by meeting)."""
-        query = self.db.query(VoteResult).filter(
+        # JOIN with requirements and meetings tables to get requirement_no and meeting_no
+        query = self.db.query(
+            VoteResult,
+            Requirement.requirement_no,
+            RequirementReviewMeeting.meeting_no
+        ).join(
+            Requirement,
+            VoteResult.requirement_id == Requirement.id
+        ).join(
+            RequirementReviewMeeting,
+            VoteResult.meeting_id == RequirementReviewMeeting.id
+        ).filter(
             VoteResult.tenant_id == tenant_id
         )
 
         if meeting_id:
             query = query.filter(VoteResult.meeting_id == meeting_id)
 
+        # Get total count before pagination
         total = query.count()
-        results = query.order_by(VoteResult.archived_at.desc()).offset(skip).limit(limit).all()
+
+        # Execute query with pagination
+        results_with_data = query.order_by(
+            VoteResult.archived_at.desc()
+        ).offset(skip).limit(limit).all()
+
+        # Attach requirement_no and meeting_no to each VoteResult object
+        results = []
+        for vote_result, requirement_no, meeting_no in results_with_data:
+            # Add fields as dynamic attributes
+            vote_result.requirement_no = requirement_no
+            vote_result.meeting_no = meeting_no
+            results.append(vote_result)
 
         return results, total
 
     def get_vote_result(self, result_id: int, tenant_id: int) -> Optional[VoteResult]:
         """Get a specific vote result by ID."""
-        return self.db.query(VoteResult).filter(
+        # JOIN with requirements and meetings tables to get requirement_no and meeting_no
+        result = self.db.query(
+            VoteResult,
+            Requirement.requirement_no,
+            RequirementReviewMeeting.meeting_no
+        ).join(
+            Requirement,
+            VoteResult.requirement_id == Requirement.id
+        ).join(
+            RequirementReviewMeeting,
+            VoteResult.meeting_id == RequirementReviewMeeting.id
+        ).filter(
             VoteResult.id == result_id,
             VoteResult.tenant_id == tenant_id
         ).first()
+
+        if result:
+            vote_result, requirement_no, meeting_no = result
+            # Add fields as dynamic attributes
+            vote_result.requirement_no = requirement_no
+            vote_result.meeting_no = meeting_no
+            return vote_result
+
+        return None
 

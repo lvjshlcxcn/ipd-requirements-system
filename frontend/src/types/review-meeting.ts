@@ -251,3 +251,64 @@ export interface MeetingListParams {
   status?: MeetingStatus;
   date_filter?: string;
 }
+
+// 投票结果存档类型
+export interface VoteResultArchive {
+  id: number;
+  meeting_id: number;
+  meeting_no?: string; // 会议编号
+  requirement_id: number;
+  requirement_no?: string; // 需求业务编号
+  requirement_title: string;
+  vote_statistics: VoteStatisticsArchive;
+  archived_at: string;
+  tenant_id: number;
+  created_at: string;
+}
+
+export interface VoteStatisticsArchive {
+  requirement_id: number;
+  total_votes: number;
+  approve_count: number;
+  approve_percentage: number;
+  reject_count: number;
+  reject_percentage: number;
+  abstain_count: number;
+  abstain_percentage: number;
+  votes: VoteRecord[];
+}
+
+export interface VoteRecord {
+  voter_id: number;
+  voter_name: string;
+  vote_option: VoteOption;
+  comment?: string;
+  voted_at?: string;
+}
+
+export interface VoteResultListResponse {
+  success: boolean;
+  data: {
+    items: VoteResultArchive[];
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+  };
+}
+
+export interface VoteResultDetailResponse {
+  success: boolean;
+  data: VoteResultArchive;
+}
+
+// 投票结果枚举
+export type VoteOutcome = 'approved' | 'rejected' | 'pending';
+
+// 筛选参数
+export interface VoteResultFilters {
+  meeting_id?: number;
+  date_from?: string;
+  date_to?: string;
+  outcome?: VoteOutcome;
+}
