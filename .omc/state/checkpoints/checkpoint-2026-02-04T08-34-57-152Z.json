@@ -1,0 +1,23 @@
+{
+  "created_at": "2026-02-04T08:34:57.151Z",
+  "trigger": "auto",
+  "active_modes": {
+    "ralph": {
+      "iteration": 0,
+      "prompt": ""
+    },
+    "ultrawork": {
+      "original_prompt": "/oh-my-claudecode:ultrapilot 评审中心--创建会议--开始会议--添加参会人员--添加需求--选定需求--选择投票人--只有选择投票人才能投票--投票完毕后-这个人就不能投票了。依次选择所有的投票人，投票完毕后，统计投票结果\n\n依据上述流程 从新审视前后端应用，修改程序后，做好前后端联调测试。 ralph"
+    },
+    "ultrapilot": {
+      "session_id": "",
+      "worker_count": 0
+    }
+  },
+  "todo_summary": {
+    "pending": 0,
+    "in_progress": 0,
+    "completed": 0
+  },
+  "wisdom_exported": false
+}
