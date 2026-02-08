@@ -68,6 +68,7 @@ export function AddRequirementModal({
         page,
         page_size: pageSize,
         search: searchKeyword || undefined,
+        exclude_reviewed: true,  // 排除已在评审会议或有投票结果的需求
       }),
     enabled: visible,
   })

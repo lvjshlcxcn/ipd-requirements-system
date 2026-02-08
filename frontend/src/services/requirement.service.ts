@@ -20,6 +20,7 @@ export interface RequirementListParams {
   source_channel?: string
   target_type?: string
   search?: string
+  exclude_reviewed?: boolean
 }
 
 export const requirementService = {

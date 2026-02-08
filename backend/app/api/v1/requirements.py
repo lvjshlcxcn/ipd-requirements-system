@@ -59,6 +59,7 @@ async def list_requirements(
     search: Optional[str] = Query(None, description="Search in title and number"),
     sort_by: str = Query("created_at", description="Sort field"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order"),
+    exclude_reviewed: bool = Query(False, description="Exclude requirements already in review meetings or with vote results"),
     service: RequirementService = Depends(get_requirement_service),
 ):
     """
@@ -72,6 +73,7 @@ async def list_requirements(
     - **search**: Search in title and requirement number
     - **sort_by**: Field to sort by
     - **sort_order**: Sort order (asc or desc)
+    - **exclude_reviewed**: 排除已在评审会议或有投票结果的需求(用于"添加需求到会议"场景)
     """
     requirements, total = service.list_requirements(
         page=page,
@@ -82,6 +84,7 @@ async def list_requirements(
         search=search,
         sort_by=sort_by,
         sort_order=sort_order,
+        exclude_reviewed=exclude_reviewed,
     )
 
     total_pages = (total + page_size - 1) // page_size

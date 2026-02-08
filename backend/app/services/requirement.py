@@ -103,6 +103,7 @@ class RequirementService:
         search: Optional[str] = None,
         sort_by: str = "created_at",
         sort_order: str = "desc",
+        exclude_reviewed: bool = False,
     ) -> Tuple[List[Requirement], int]:
         """
         List requirements with filters and pagination.
@@ -116,6 +117,7 @@ class RequirementService:
             search: Search in title and requirement_no
             sort_by: Sort field
             sort_order: Sort order (asc or desc)
+            exclude_reviewed: 排除已在评审会议或有投票结果的需求
 
         Returns:
             Tuple of (list of requirements, total count)
@@ -129,6 +131,7 @@ class RequirementService:
             search=search,
             sort_by=sort_by,
             sort_order=sort_order,
+            exclude_reviewed=exclude_reviewed,
         )
 
     def update_requirement(

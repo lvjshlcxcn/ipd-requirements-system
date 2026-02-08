@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any, Tuple
 
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func, desc, or_, and_
+from sqlalchemy import select, func, desc, or_, and_, exists, not_
 
 from app.models.requirement import Requirement, Requirement10QAnswer, RequirementStatus, SourceChannel
 
@@ -114,6 +114,7 @@ class RequirementRepository:
         search: Optional[str] = None,
         sort_by: str = "created_at",
         sort_order: str = "desc",
+        exclude_reviewed: bool = False,
     ) -> Tuple[List[Requirement], int]:
         """
         List requirements with filters and pagination.
@@ -127,6 +128,7 @@ class RequirementRepository:
             search: Search in title and requirement_no
             sort_by: Sort field
             sort_order: Sort order (asc or desc)
+            exclude_reviewed: 排除已在评审会议或有投票结果的需求
 
         Returns:
             Tuple of (list of requirements, total count)
@@ -158,10 +160,54 @@ class RequirementRepository:
         if conditions:
             stmt = stmt.where(and_(*conditions))
 
+        # 排除已评审需求（新增）
+        if exclude_reviewed:
+            from app.models.requirement_review_meeting_requirement import RequirementReviewMeetingRequirement
+            from app.models.vote_result import VoteResult
+
+            # 子查询1：已在会议中的需求
+            in_meeting = exists().where(
+                and_(
+                    RequirementReviewMeetingRequirement.requirement_id == Requirement.id,
+                    RequirementReviewMeetingRequirement.tenant_id == Requirement.tenant_id
+                )
+            )
+
+            # 子查询2：有投票结果的需求
+            has_vote_result = exists().where(
+                and_(
+                    VoteResult.requirement_id == Requirement.id,
+                    VoteResult.tenant_id == Requirement.tenant_id
+                )
+            )
+
+            # 排除两种情况
+            stmt = stmt.where(not_(in_meeting)).where(not_(has_vote_result))
+
         # Get total count
         count_stmt = select(func.count()).select_from(Requirement)
         if conditions:
             count_stmt = count_stmt.where(and_(*conditions))
+
+        if exclude_reviewed:
+            from app.models.requirement_review_meeting_requirement import RequirementReviewMeetingRequirement
+            from app.models.vote_result import VoteResult
+
+            # 复用相同的子查询逻辑
+            in_meeting_count = exists().where(
+                and_(
+                    RequirementReviewMeetingRequirement.requirement_id == Requirement.id,
+                    RequirementReviewMeetingRequirement.tenant_id == Requirement.tenant_id
+                )
+            )
+            has_vote_result_count = exists().where(
+                and_(
+                    VoteResult.requirement_id == Requirement.id,
+                    VoteResult.tenant_id == Requirement.tenant_id
+                )
+            )
+            count_stmt = count_stmt.where(not_(in_meeting_count)).where(not_(has_vote_result_count))
+
         total = self.db.execute(count_stmt).scalar()
 
         # Apply sorting
