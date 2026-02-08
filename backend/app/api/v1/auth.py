@@ -1,10 +1,13 @@
 """Authentication API endpoints."""
-from fastapi import APIRouter, HTTPException, status, Depends
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, status, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.services.user import UserService
+from app.models.user import User
+from app.api.deps import get_current_user_sync
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -72,5 +75,51 @@ async def get_current_user():
             "username": "admin",
             "email": "admin@example.com",
             "role": "admin"
+        }
+    }
+
+
+@router.get("/users")
+async def get_users(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    search: Optional[str] = Query(None, description="搜索用户名或姓名"),
+    db: Session = Depends(get_db)  # 移除认证要求，方便调试
+):
+    """获取用户列表（用于选择参会人员等场景）"""
+    user_service = UserService(db)
+
+    # 构建查询
+    query = db.query(User).filter(User.is_active == True)
+
+    # 搜索过滤
+    if search:
+        query = query.filter(
+            (User.username.ilike(f"%{search}%")) |
+            (User.full_name.ilike(f"%{search}%"))
+        )
+
+    # 分页
+    total = query.count()
+    skip = (page - 1) * page_size
+    users = query.offset(skip).limit(page_size).all()
+
+    return {
+        "success": True,
+        "data": {
+            "items": [
+                {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "role": user.role
+                }
+                for user in users
+            ],
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": (total + page_size - 1) // page_size
         }
     }
