@@ -85,7 +85,31 @@
       "Bash(printf:*)",
       "Bash(git credential-osxkeychain erase:*)",
       "Bash(git branch:*)",
-      "Skill(frontend-design:frontend-design)"
+      "Skill(frontend-design:frontend-design)",
+      "Skill(everything-claude-code:tdd-workflow)",
+      "Skill(oh-my-claudecode:hud)",
+      "WebSearch",
+      "Skill(oh-my-claudecode:mcp-setup)",
+      "Bash(if:*)",
+      "Bash(then)",
+      "Bash(if cat .mcp.json)",
+      "Bash(then echo \"✓ MCP 服务器配置完成\" echo \"\" echo \"已配置的服务器:\" cat .mcp.json)",
+      "Bash(else)",
+      "Bash(fi:*)",
+      "Bash(alembic revision:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(pkill:*)",
+      "Bash(PYTHONPATH=/Users/kingsun/claude_study/backend python3:*)",
+      "Bash(/Users/kingsun/claude_study/backend/.venv/bin/python:*)",
+      "Bash(./.venv/bin/python:*)",
+      "Bash(.venv/bin/alembic:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(npx playwright install:*)",
+      "Bash(perl:*)"
     ]
-  }
+  },
+  "disabledMcpjsonServers": [
+    "context7",
+    "filesystem"
+  ]
 }
