@@ -120,11 +120,6 @@ export function AppRouter() {
           } />
           <Route path="/rtm" element={
             <Suspense fallback={<PageLoading />}>
-              <DevelopmentPage />
-            </Suspense>
-          } />
-          <Route path="/rtm" element={
-            <Suspense fallback={<PageLoading />}>
               <RTMPage />
             </Suspense>
           } />
