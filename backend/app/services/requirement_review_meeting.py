@@ -70,10 +70,29 @@ class RequirementReviewMeetingService:
             "started_at": datetime.now()
         })
 
-    def end_meeting(self, meeting: RequirementReviewMeeting) -> RequirementReviewMeeting:
-        """End a review meeting and archive vote results."""
+    def end_meeting(
+        self,
+        meeting: RequirementReviewMeeting,
+        auto_abstain: bool = False
+    ) -> RequirementReviewMeeting:
+        """结束会议并可选自动创建弃权票.
+
+        Args:
+            meeting: 会议对象
+            auto_abstain: 是否自动为未投票人员创建弃权票
+
+        Raises:
+            ValueError: 会议状态不符合要求
+        """
         if meeting.status != "in_progress":
-            raise ValueError("Only in-progress meetings can be ended")
+            raise ValueError("只有进行中的会议可以结束")
+
+        # 如果启用自动弃权,先处理未投票人员
+        if auto_abstain:
+            self.repo.create_abstain_votes_for_pending_voters(
+                meeting.id,
+                meeting.tenant_id
+            )
 
         # 更新会议状态
         updated_meeting = self.repo.update(meeting, {

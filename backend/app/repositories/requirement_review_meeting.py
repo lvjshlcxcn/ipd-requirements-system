@@ -79,9 +79,71 @@ class RequirementReviewMeetingRepository:
         return meeting
 
     def delete(self, meeting: RequirementReviewMeeting) -> None:
-        """Delete meeting (cascade will handle related records)."""
-        self.db.delete(meeting)
-        self.db.commit()
+        """Delete meeting with explicit cleanup of related records (double protection).
+
+        This method implements a "double protection" strategy:
+        1. Explicitly delete all related records in code
+        2. Rely on database CASCADE as a safety net
+
+        Args:
+            meeting: The meeting to delete
+
+        Raises:
+            SQLAlchemyError: If deletion fails (transaction will be rolled back)
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            # Step 1: Explicitly delete related records
+            deletion_counts = {}
+
+            # 1.1 Delete vote results (archived voting statistics)
+            vote_results_count = self.db.query(VoteResult).filter(
+                VoteResult.meeting_id == meeting.id
+            ).delete(synchronize_session=False)
+            deletion_counts['vote_results'] = vote_results_count
+
+            # 1.2 Delete meeting-requirement associations
+            meeting_reqs_count = self.db.query(RequirementReviewMeetingRequirement).filter(
+                RequirementReviewMeetingRequirement.meeting_id == meeting.id
+            ).delete(synchronize_session=False)
+            deletion_counts['meeting_requirements'] = meeting_reqs_count
+
+            # 1.3 Delete votes (should already be deleted by CASCADE from requirements)
+            votes_count = self.db.query(RequirementReviewVote).filter(
+                RequirementReviewVote.meeting_id == meeting.id
+            ).delete(synchronize_session=False)
+            deletion_counts['votes'] = votes_count
+
+            # 1.4 Delete attendees (should already be deleted by CASCADE)
+            attendees_count = self.db.query(RequirementReviewMeetingAttendee).filter(
+                RequirementReviewMeetingAttendee.meeting_id == meeting.id
+            ).delete(synchronize_session=False)
+            deletion_counts['attendees'] = attendees_count
+
+            # Step 2: Delete the meeting itself
+            # Database CASCADE will handle any remaining related records
+            self.db.delete(meeting)
+
+            # Step 3: Commit transaction
+            self.db.commit()
+
+            # Step 4: Log deletion summary
+            total_deleted = sum(deletion_counts.values())
+            logger.info(
+                f"Deleted meeting {meeting.meeting_no} (ID: {meeting.id}) - "
+                f"Explicitly deleted: {total_deleted} related records "
+                f"({deletion_counts}), plus meeting record via CASCADE"
+            )
+
+        except Exception as e:
+            # Rollback on any error
+            self.db.rollback()
+            logger.error(
+                f"Failed to delete meeting {meeting.meeting_no} (ID: {meeting.id}): {str(e)}"
+            )
+            raise
 
     def count_by_date(self, tenant_id: int, date_str: str) -> int:
         """Count meetings created on a specific date."""
@@ -484,9 +546,7 @@ class RequirementReviewMeetingRepository:
                 "voters": [],
                 "total_assigned": 0,
                 "total_voted": 0,
-                "is_complete": False,
-                "current_voter_id": None,
-                "current_voter": None
+                "is_complete": False
             }
 
         # 获取所有投票记录
@@ -509,8 +569,6 @@ class RequirementReviewMeetingRepository:
         user_map = {user.id: user for user in attendees}
         voters = []
         voted_count = 0
-        current_voter_id = None
-        current_voter = None
 
         for voter_id in meeting_req.assigned_voter_ids:
             user = user_map.get(voter_id)
@@ -520,15 +578,6 @@ class RequirementReviewMeetingRepository:
                 has_voted = vote is not None
                 if has_voted:
                     voted_count += 1
-                elif current_voter_id is None:
-                    # 第一个未投票的用户是当前投票人
-                    current_voter_id = voter_id
-                    current_voter = {
-                        "voter_id": voter_id,
-                        "voter_name": user.full_name or user.username,
-                        "full_name": user.full_name,
-                        "username": user.username
-                    }
 
                 voters.append({
                     "attendee_id": voter_id,
@@ -539,15 +588,21 @@ class RequirementReviewMeetingRepository:
                     "voted_at": vote.updated_at if vote else None
                 })
 
+        # 修复: 判断所有指定的投票人是否都已投票
+        # 不仅仅比较数量,而是检查每个指定人员是否都有投票记录
+        # 这样可以避免部分人员投票时误判为完成
+        all_voted = all(
+            vote_map.get(voter_id) is not None
+            for voter_id in meeting_req.assigned_voter_ids
+        )
+
         return {
             "requirement_id": requirement_id,
             "assigned_voter_ids": meeting_req.assigned_voter_ids,
             "voters": voters,
             "total_assigned": len(meeting_req.assigned_voter_ids),
             "total_voted": voted_count,
-            "is_complete": voted_count == len(meeting_req.assigned_voter_ids),
-            "current_voter_id": current_voter_id,
-            "current_voter": current_voter
+            "is_complete": all_voted
         }
 
     # ========================================================================
@@ -665,4 +720,229 @@ class RequirementReviewMeetingRepository:
             return vote_result
 
         return None
+
+    # ========================================================================
+    # Pending Voters Management (Auto Abstain)
+    # ========================================================================
+
+    def get_all_pending_voters(self, meeting_id: int) -> Dict[str, Any]:
+        """获取会议中所有需求的未投票人员统计.
+
+        Returns:
+            {
+                "total_requirements": 3,
+                "requirements": [
+                    {
+                        "requirement_id": 123,
+                        "requirement_title": "需求标题",
+                        "total_assigned": 5,
+                        "voted_count": 3,
+                        "pending_voters": [
+                            {
+                                "voter_id": 4,
+                                "voter_name": "张三",
+                                "full_name": "张三"
+                            }
+                        ]
+                    }
+                ]
+            }
+        """
+        requirements = self.get_requirements(meeting_id)
+
+        # 获取会议的所有参会者ID和信息
+        from app.models.requirement_review_meeting import RequirementReviewMeeting
+        from app.models.user import User
+        from app.models.requirement_review_vote import RequirementReviewVote
+
+        meeting = self.db.query(RequirementReviewMeeting).filter(
+            RequirementReviewMeeting.id == meeting_id
+        ).first()
+
+        if not meeting:
+            return {
+                "total_requirements": 0,
+                "requirements": []
+            }
+
+        # 获取所有参会者ID和用户信息
+        all_attendee_ids = [attendee.attendee_id for attendee in meeting.attendees]
+        attendee_users = {
+            attendee.attendee_id: attendee.attendee
+            for attendee in meeting.attendees
+        }
+
+        result = {
+            "total_requirements": 0,
+            "requirements": []
+        }
+
+        for req in requirements:
+            if not req.requirement:
+                continue
+
+            result["total_requirements"] += 1
+
+            # 确定投票人员：如果未设置指定投票人，则所有参会者都是投票人
+            voter_ids = req.assigned_voter_ids if req.assigned_voter_ids else all_attendee_ids
+
+            # 如果没有投票人，跳过该需求
+            if not voter_ids:
+                continue
+
+            # 获取该需求的投票记录
+            votes = self.db.query(RequirementReviewVote).filter(
+                RequirementReviewVote.meeting_id == meeting_id,
+                RequirementReviewVote.requirement_id == req.requirement_id
+            ).all()
+
+            # 创建投票映射
+            vote_map = {vote.voter_id: vote for vote in votes}
+
+            # 构建投票人员状态列表（只包含voter_ids范围内的）
+            voters = []
+            for voter_id in voter_ids:
+                user = attendee_users.get(voter_id)
+                if not user:
+                    continue
+
+                vote = vote_map.get(voter_id)
+                has_voted = vote is not None
+
+                voters.append({
+                    "attendee_id": voter_id,
+                    "username": user.username,
+                    "full_name": user.full_name,
+                    "has_voted": has_voted,
+                    "vote_option": vote.vote_option if vote else None,
+                    "voted_at": vote.updated_at if vote else None
+                })
+
+            # 找出未投票人员
+            pending_voters = [
+                {
+                    "voter_id": v["attendee_id"],
+                    "voter_name": v["username"],
+                    "full_name": v.get("full_name")
+                }
+                for v in voters
+                if not v["has_voted"]
+            ]
+
+            # 计算投票统计
+            voted_count = sum(1 for v in voters if v["has_voted"])
+
+            result["requirements"].append({
+                "requirement_id": req.requirement_id,
+                "requirement_title": req.requirement.title,
+                "total_assigned": len(voters),
+                "voted_count": voted_count,
+                "pending_voters": pending_voters
+            })
+
+        return result
+
+    def create_abstain_votes_for_pending_voters(
+        self,
+        meeting_id: int,
+        tenant_id: int
+    ) -> Dict[str, int]:
+        """为所有未投票人员自动创建弃权票.
+
+        Returns:
+            {
+                "total_votes_created": 10,
+                "by_requirement": {
+                    123: 3,  # requirement_id: 创建的弃权票数量
+                    456: 4
+                }
+            }
+        """
+        requirements = self.get_requirements(meeting_id)
+
+        # 获取会议的所有参会者ID和信息
+        from app.models.requirement_review_meeting import RequirementReviewMeeting
+        from app.models.requirement_review_vote import RequirementReviewVote
+
+        meeting = self.db.query(RequirementReviewMeeting).filter(
+            RequirementReviewMeeting.id == meeting_id
+        ).first()
+
+        if not meeting:
+            return {"total_votes_created": 0, "by_requirement": {}}
+
+        # 获取所有参会者ID和用户信息
+        all_attendee_ids = [attendee.attendee_id for attendee in meeting.attendees]
+        attendee_users = {
+            attendee.attendee_id: attendee.attendee
+            for attendee in meeting.attendees
+        }
+
+        stats = {"total_votes_created": 0, "by_requirement": {}}
+
+        for req in requirements:
+            if not req.requirement:
+                continue
+
+            # 确定投票人员：如果未设置指定投票人，则所有参会者都是投票人
+            voter_ids = req.assigned_voter_ids if req.assigned_voter_ids else all_attendee_ids
+
+            # 如果没有投票人，跳过该需求
+            if not voter_ids:
+                continue
+
+            # 获取该需求的投票记录
+            votes = self.db.query(RequirementReviewVote).filter(
+                RequirementReviewVote.meeting_id == meeting_id,
+                RequirementReviewVote.requirement_id == req.requirement_id
+            ).all()
+
+            # 创建投票映射
+            vote_map = {vote.voter_id: vote for vote in votes}
+
+            # 找出未投票人员（仅统计投票人范围内的）
+            pending_voters = []
+            for voter_id in voter_ids:
+                user = attendee_users.get(voter_id)
+                if not user:
+                    continue
+
+                # 如果该投票人没有投票记录，则是未投票人员
+                if voter_id not in vote_map:
+                    pending_voters.append({
+                        "attendee_id": voter_id,
+                        "username": user.username,
+                        "full_name": user.full_name
+                    })
+
+            if not pending_voters:
+                continue
+
+            # 为每个未投票人员创建弃权票
+            votes_created = 0
+            for voter in pending_voters:
+                try:
+                    self.cast_vote(
+                        meeting_id=meeting_id,
+                        requirement_id=req.requirement_id,
+                        voter_id=voter["attendee_id"],
+                        tenant_id=tenant_id,
+                        vote_option="abstain",
+                        comment="会议结束时自动弃权"
+                    )
+                    votes_created += 1
+                except Exception as e:
+                    # 记录错误但继续处理其他人员
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(
+                        f"创建弃权票失败 (meeting_id={meeting_id}, "
+                        f"requirement_id={req.requirement_id}, "
+                        f"voter_id={voter['attendee_id']}): {str(e)}"
+                    )
+
+            stats["by_requirement"][req.requirement_id] = votes_created
+            stats["total_votes_created"] += votes_created
+
+        return stats
 

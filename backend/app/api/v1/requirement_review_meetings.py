@@ -35,6 +35,8 @@ from app.schemas.requirement_review_meeting import (
     VoteResultData,
     VoteResultResponse,
     VoteResultListResponse,
+    EndMeetingRequest,
+    PendingVotersResponse,
 )
 
 router = APIRouter(prefix="/requirement-review-meetings", tags=["Requirement Review Meetings"])
@@ -226,10 +228,11 @@ async def start_meeting(
 @router.post("/{meeting_id}/end", response_model=MeetingResponse)
 async def end_meeting(
     meeting_id: int,
+    request: EndMeetingRequest = Body(default=EndMeetingRequest()),
     current_user: Optional[User] = Depends(get_current_user_sync),
     service: RequirementReviewMeetingService = Depends(get_service),
 ):
-    """End a review meeting (only moderator can end)."""
+    """结束会议(可选自动弃权投票)."""
     tenant_id = get_tenant_id(current_user)
     meeting = service.repo.get(meeting_id, tenant_id)
 
@@ -240,7 +243,10 @@ async def end_meeting(
         raise HTTPException(status_code=403, detail="只有主持人可以结束会议")
 
     try:
-        updated_meeting = service.end_meeting(meeting)
+        updated_meeting = service.end_meeting(
+            meeting,
+            auto_abstain=request.auto_abstain
+        )
         return MeetingResponse(
             success=True,
             message="会议已结束",
@@ -248,6 +254,34 @@ async def end_meeting(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/{meeting_id}/pending-voters")
+async def get_pending_voters(
+    meeting_id: int,
+    current_user: Optional[User] = Depends(get_current_user_sync),
+    repo: RequirementReviewMeetingRepository = Depends(get_repository),
+    service: RequirementReviewMeetingService = Depends(get_service),
+):
+    """获取会议中所有需求的未投票人员统计(仅主持人可访问)."""
+    tenant_id = get_tenant_id(current_user)
+    meeting = repo.get(meeting_id, tenant_id)
+
+    if not meeting:
+        raise HTTPException(status_code=404, detail="会议不存在")
+
+    # 验证主持人权限
+    if not service.is_moderator(meeting, current_user.id):
+        raise HTTPException(status_code=403, detail="只有主持人可以查看未投票人员")
+
+    pending_data = repo.get_all_pending_voters(meeting_id)
+
+    # 直接返回数据,不嵌套在data中
+    return {
+        "success": True,
+        "total_requirements": pending_data["total_requirements"],
+        "requirements": pending_data["requirements"]
+    }
 
 
 # ========================================================================
@@ -433,6 +467,31 @@ async def add_requirement_to_meeting(
         raise HTTPException(
             status_code=400,
             detail="只有会议开始后才能添加评审需求"
+        )
+
+    # 检查需求是否已被其他会议关联
+    from app.models.requirement_review_meeting_requirement import RequirementReviewMeetingRequirement
+    existing_meeting_req = repo.db.query(RequirementReviewMeetingRequirement).filter(
+        RequirementReviewMeetingRequirement.requirement_id == req_in.requirement_id,
+        RequirementReviewMeetingRequirement.meeting_id != meeting_id
+    ).first()
+
+    if existing_meeting_req:
+        raise HTTPException(
+            status_code=400,
+            detail=f"该需求已被其他会议评审 (会议ID: {existing_meeting_req.meeting_id})"
+        )
+
+    # 检查需求是否被 Insight Storyboard 关联
+    from app.models.insight import UserStoryboard
+    storyboard = repo.db.query(UserStoryboard).filter(
+        UserStoryboard.linked_requirement_id == req_in.requirement_id
+    ).first()
+
+    if storyboard:
+        raise HTTPException(
+            status_code=400,
+            detail=f"该需求已被洞察分析关联 (Storyboard ID: {storyboard.id})"
         )
 
     # 获取当前最大的order值
@@ -708,51 +767,16 @@ async def move_to_next_voter(
     meeting_id: int,
     requirement_id: int,
     current_user: Optional[User] = Depends(get_current_user_sync),
-    service: RequirementReviewMeetingService = Depends(get_service),
-    repo: RequirementReviewMeetingRepository = Depends(get_repository),
 ):
     """
-    Get the next voter (moderator only).
+    Deprecated: Parallel voting mode enabled.
 
-    This returns information about who the next/current voter is.
-    The current voter is automatically determined by who hasn't voted yet.
-
-    **Permission**: Only moderator can call this endpoint.
-    **Returns**: Current voter information (next person to vote)
+    This endpoint is deprecated. All assigned voters can now vote independently.
     """
-    if not current_user:
-        raise HTTPException(status_code=401, detail="需要登录")
-
-    tenant_id = get_tenant_id(current_user)
-
-    # 验证会议存在
-    meeting = repo.get(meeting_id, tenant_id)
-    if not meeting:
-        raise HTTPException(status_code=404, detail="会议不存在")
-
-    # 验证主持人权限
-    if not service.is_moderator(meeting, current_user.id):
-        raise HTTPException(status_code=403, detail="只有主持人可以查看下一位投票人")
-
-    # 获取当前投票状态
-    status_data = repo.get_voter_status(meeting_id, requirement_id)
-
-    # 检查投票是否已完成
-    if status_data["is_complete"]:
-        raise HTTPException(status_code=400, detail="投票已完成")
-
-    # 获取当前投票人信息
-    current_voter = status_data["current_voter"]
-
-    if not current_voter:
-        raise HTTPException(status_code=400, detail="没有待投票的人员")
-
-    # 返回当前投票人信息
-    return {
-        "success": True,
-        "message": "已切换到下一位投票人",
-        "data": current_voter
-    }
+    raise HTTPException(
+        status_code=400,
+        detail="并行投票模式已启用，所有指定投票人可独立投票，无需切换投票人"
+    )
 
 
 # ========================================================================

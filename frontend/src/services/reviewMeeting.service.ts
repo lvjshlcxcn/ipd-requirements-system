@@ -102,11 +102,25 @@ const reviewMeetingService = {
   },
 
   /**
-   * 结束会议
+   * 结束会议(支持自动弃权)
    */
-  endMeeting: async (meetingId: number): Promise<MeetingResponse> => {
-    const response = await api.post(`${BASE_PATH}/${meetingId}/end`)
+  endMeeting: async (
+    meetingId: number,
+    autoAbstain: boolean = false
+  ): Promise<MeetingResponse> => {
+    const response = await api.post(
+      `${BASE_PATH}/${meetingId}/end`,
+      { auto_abstain: autoAbstain }
+    )
     // API 拦截器已经返回了 response.data，所以这里直接返回 response
+    return response
+  },
+
+  /**
+   * 获取会议中所有需求的未投票人员(主持人专用)
+   */
+  getPendingVoters: async (meetingId: number): Promise<any> => {
+    const response = await api.get(`${BASE_PATH}/${meetingId}/pending-voters`)
     return response
   },
 

@@ -35,5 +35,6 @@ class RequirementReviewMeetingRequirement(Base, TimestampMixin, TenantMixin):
 
     __table_args__ = (
         UniqueConstraint('meeting_id', 'requirement_id', name='uq_meeting_requirement'),
+        UniqueConstraint('requirement_id', name='uq_requirement_single_meeting'),  # 确保一个需求只能被一个会议评审
         Index('ix_meeting_reqs_tenant_meeting', 'tenant_id', 'meeting_id', 'review_order'),
     )

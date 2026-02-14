@@ -363,6 +363,44 @@ class MessageResponse(BaseModel):
     message: str
 
 
+# ============================================================================
+# End Meeting Request Schema
+# ============================================================================
+
+class EndMeetingRequest(BaseModel):
+    """结束会议请求."""
+    auto_abstain: bool = Field(
+        default=False,
+        description="是否自动为未投票人员创建弃权票"
+    )
+
+
+# ============================================================================
+# Pending Voters Schema
+# ============================================================================
+
+class PendingVoter(BaseModel):
+    """未投票人员."""
+    voter_id: int
+    voter_name: str
+    full_name: Optional[str] = None
+
+
+class PendingRequirement(BaseModel):
+    """有未投票人员的需求."""
+    requirement_id: int
+    requirement_title: str
+    total_assigned: int
+    voted_count: int
+    pending_voters: List[PendingVoter]
+
+
+class PendingVotersResponse(BaseModel):
+    """未投票人员统计响应."""
+    total_requirements: int
+    requirements: List[PendingRequirement]
+
+
 # Forward references resolution
 AttendeeResponse.model_rebuild()
 MeetingRequirementResponse.model_rebuild()

@@ -12,6 +12,7 @@ import { VoteStatisticsPanel } from './components/VoteStatisticsPanel'
 import { VoterSelectionPanel } from './components/VoterSelectionPanel'
 import { AddRequirementModal } from './components/AddRequirementModal'
 import { AddAttendeeModal } from './components/AddAttendeeModal'
+import { EndMeetingConfirmModal } from './components/EndMeetingConfirmModal'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 export function ReviewMeetingDetailPage() {
@@ -24,7 +25,8 @@ export function ReviewMeetingDetailPage() {
   const [votedRequirements, setVotedRequirements] = useState<Set<number>>(new Set())
   const [addRequirementModalVisible, setAddRequirementModalVisible] = useState(false)
   const [addAttendeeModalVisible, setAddAttendeeModalVisible] = useState(false)
-  const [currentVoterId, setCurrentVoterId] = useState<number | null>(null)  // 当前投票人ID
+  const [endMeetingConfirmVisible, setEndMeetingConfirmVisible] = useState(false)
+  const [pendingVotersData, setPendingVotersData] = useState<any>(null)
 
   // 获取会议详情
   const { data: meetingData, isLoading: meetingLoading } = useQuery({
@@ -76,18 +78,19 @@ export function ReviewMeetingDetailPage() {
     retry: false,
   })
 
-  // 获取投票人员状态（用于权限检查和获取当前投票人）
+  // 获取投票人员状态（用于权限检查）
   const { data: voterStatusData } = useQuery({
     queryKey: ['voter-status', id, selectedRequirementId],
     queryFn: () => reviewMeetingService.getVoterStatus(Number(id), selectedRequirementId!),
     enabled: !!selectedRequirementId,
     refetchInterval: 5000, // 每5秒刷新
-    onSuccess: (data) => {
-      // 同步当前投票人ID到状态
-      if (data?.data?.current_voter_id !== undefined) {
-        setCurrentVoterId(data.data.current_voter_id)
-      }
-    },
+  })
+
+  // 获取未投票人员（手动触发）
+  const { data: pendingVoters, refetch: refetchPendingVoters } = useQuery({
+    queryKey: ['pending-voters', id],
+    queryFn: () => reviewMeetingService.getPendingVoters(Number(id)),
+    enabled: false,  // 手动触发
   })
 
   // 开始会议
@@ -104,7 +107,8 @@ export function ReviewMeetingDetailPage() {
 
   // 结束会议
   const endMeetingMutation = useMutation({
-    mutationFn: () => reviewMeetingService.endMeeting(Number(id)),
+    mutationFn: ({ autoAbstain = false }: { autoAbstain?: boolean }) =>
+      reviewMeetingService.endMeeting(Number(id), autoAbstain),
     onSuccess: () => {
       message.success('会议已结束')
       queryClient.invalidateQueries({ queryKey: ['meeting', id] })
@@ -146,27 +150,68 @@ export function ReviewMeetingDetailPage() {
     },
   })
 
-  // 切换到下一位投票人
-  const moveToNextVoterMutation = useMutation({
-    mutationFn: () => reviewMeetingService.moveToNextVoter(Number(id), selectedRequirementId!),
-    onSuccess: async () => {
-      message.success('已切换到下一位投票人')
-
-      // 刷新投票人员状态
-      await queryClient.invalidateQueries({ queryKey: ['voter-status', id, selectedRequirementId] })
-      await queryClient.refetchQueries({ queryKey: ['voter-status', id, selectedRequirementId] })
-    },
-    onError: (error: any) => {
-      message.error(error.message || '切换失败')
-    },
-  })
-
   const handleStartMeeting = () => {
     startMeetingMutation.mutate()
   }
 
-  const handleEndMeeting = () => {
-    endMeetingMutation.mutate()
+  const handleEndMeeting = async () => {
+    console.log('[ReviewMeetingDetailPage] handleEndMeeting 被调用')
+    console.log('[ReviewMeetingDetailPage] 当前用户:', user)
+    console.log('[ReviewMeetingDetailPage] 会议数据:', meetingData?.data)
+
+    // 先获取未投票人员信息
+    try {
+      const result = await refetchPendingVoters()
+      console.log('[ReviewMeetingDetailPage] 获取未投票人员结果:', result)
+      console.log('[ReviewMeetingDetailPage] result.data:', result.data)
+      console.log('[ReviewMeetingDetailPage] result.data?.data:', result.data?.data)
+
+      if (result.data?.data) {
+        setPendingVotersData(result.data.data)
+        const totalPending = result.data.data.requirements?.reduce(
+          (sum: number, req: any) => sum + (req.pending_voters?.length || 0),
+          0
+        )
+
+        console.log('[ReviewMeetingDetailPage] 总未投票人数:', totalPending)
+
+        if (totalPending > 0) {
+          // 有未投票人员,显示确认弹窗
+          console.log('[ReviewMeetingDetailPage] 显示确认弹窗')
+          setEndMeetingConfirmVisible(true)
+        } else {
+          // 所有人员都已投票,直接结束会议
+          console.log('[ReviewMeetingDetailPage] 直接结束会议（无未投票人员）')
+          endMeetingMutation.mutate({ autoAbstain: false })
+        }
+      } else {
+        console.log('[ReviewMeetingDetailPage] result.data?.data 为空，使用默认值（直接结束）')
+        // 如果获取失败或没有数据，直接结束会议
+        endMeetingMutation.mutate({ autoAbstain: false })
+      }
+    } catch (error) {
+      console.error('[ReviewMeetingDetailPage] handleEndMeeting 错误:', error)
+      message.error('获取未投票人员信息失败')
+    }
+  }
+
+  const handleEndMeetingConfirm = () => {
+    // 用户确认,执行自动弃权并结束会议
+    endMeetingMutation.mutate(
+      { autoAbstain: true },
+      {
+        onSuccess: () => {
+          setEndMeetingConfirmVisible(false)
+          message.success('会议已结束,未投票人员已自动弃权')
+        }
+      }
+    )
+  }
+
+  const handleEndMeetingCancel = () => {
+    // 用户取消,关闭弹窗
+    setEndMeetingConfirmVisible(false)
+    message.info('已取消结束会议,请继续投票')
   }
 
   const handleSelectRequirement = (requirementId: number) => {
@@ -175,10 +220,6 @@ export function ReviewMeetingDetailPage() {
 
   const handleVote = async (voteOption: VoteOption, comment?: string) => {
     voteMutation.mutate({ voteOption, comment })
-  }
-
-  const handleNextVoter = async () => {
-    moveToNextVoterMutation.mutate()
   }
 
   // 删除会议
@@ -216,7 +257,7 @@ export function ReviewMeetingDetailPage() {
 
   // 获取主持人信息（从attendees或当前用户）
   const moderator = attendees.find((a: Attendee) => a.attendee_id === meetingData?.data?.moderator_id)?.user
-    || (user?.id === meetingData?.data?.moderator_id ? {
+    || (user && user.id === meetingData?.data?.moderator_id ? {
         id: user.id,
         username: user.username || `User${user.id}`,
         full_name: user.full_name
@@ -274,6 +315,15 @@ export function ReviewMeetingDetailPage() {
 
   const meeting = meetingData.data
 
+  // 调试：渲染时检查状态
+  console.log('[ReviewMeetingDetailPage] 渲染状态:', {
+    canControl,
+    isMeetingInProgress,
+    meetingStatus: meeting?.status,
+    hasHandleEndMeeting: typeof handleEndMeeting === 'function',
+    hasOnEndMeeting: !!(canControl && handleEndMeeting),
+  })
+
   return (
     <div style={{ padding: '24px' }}>
       <Row gutter={[24, 24]}>
@@ -316,13 +366,7 @@ export function ReviewMeetingDetailPage() {
               existingVote={myVote?.data?.vote_option}
               existingComment={myVote?.data?.comment}
               onSubmit={handleVote}
-              onNextVoter={handleNextVoter}
               disabled={!canVote}
-              meetingStatus={meetingData?.data?.status}
-              isAdmin={isAdmin}
-              isModerator={canControl}
-              currentVoter={voterStatusData?.data?.current_voter}
-              currentUserId={user?.id}
               isVotingComplete={voterStatusData?.data?.is_voting_complete}
             />
             {voteStatistics && (
@@ -333,7 +377,6 @@ export function ReviewMeetingDetailPage() {
               requirementId={selectedRequirementId}
               attendees={attendees}
               canControl={canControl}
-              currentVoterId={currentVoterId}
               isVotingComplete={voterStatusData?.data?.is_voting_complete}
             />
           </Space>
@@ -360,6 +403,15 @@ export function ReviewMeetingDetailPage() {
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['attendees', id] })
         }}
+      />
+
+      {/* 结束会议确认弹窗 */}
+      <EndMeetingConfirmModal
+        visible={endMeetingConfirmVisible}
+        data={pendingVotersData}
+        onConfirm={handleEndMeetingConfirm}
+        onCancel={handleEndMeetingCancel}
+        loading={endMeetingMutation.isPending}
       />
     </div>
   )

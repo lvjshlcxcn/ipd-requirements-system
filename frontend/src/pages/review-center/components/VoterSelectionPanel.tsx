@@ -12,8 +12,7 @@ interface VoterSelectionPanelProps {
   requirementId: number | null
   attendees: Attendee[]
   canControl: boolean
-  currentVoterId?: number | null  // 当前投票人ID
-  isVotingComplete?: boolean  // 投票是否完成
+  isVotingComplete?: boolean
 }
 
 interface VoterStatus {
@@ -51,7 +50,6 @@ export function VoterSelectionPanel({
   requirementId,
   attendees,
   canControl,
-  currentVoterId,
   isVotingComplete = false,
 }: VoterSelectionPanelProps) {
   const queryClient = useQueryClient()
@@ -163,7 +161,6 @@ export function VoterSelectionPanel({
             {status.voters.map((voter, index) => {
               const attendee = attendees.find((a) => a.attendee_id === voter.attendee_id)
               const isAssigned = selectedVoterIds.includes(voter.attendee_id)
-              const isCurrentVoter = currentVoterId === voter.attendee_id
 
               return (
                 <div
@@ -172,13 +169,12 @@ export function VoterSelectionPanel({
                     padding: '12px',
                     marginBottom: '8px',
                     borderRadius: '6px',
-                    border: isCurrentVoter ? '2px solid #1890ff' : '1px solid #f0f0f0',
-                    background: isCurrentVoter ? '#e6f7ff' : (voter.has_voted ? '#f5f5f5' : '#fff'),
+                    border: '1px solid #f0f0f0',
+                    background: voter.has_voted ? '#f5f5f5' : '#fff',
                     opacity: voter.has_voted ? 0.6 : 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    boxShadow: isCurrentVoter ? '0 2px 8px rgba(24, 144, 255, 0.15)' : 'none',
                   }}
                 >
                   <Space>
@@ -186,8 +182,7 @@ export function VoterSelectionPanel({
                     <Text
                       style={{
                         fontSize: '14px',
-                        fontWeight: isCurrentVoter ? 'bold' : 'normal',
-                        color: isCurrentVoter ? '#1890ff' : '#8c8c8c',
+                        color: '#8c8c8c',
                         minWidth: '40px',
                       }}
                     >
@@ -205,15 +200,14 @@ export function VoterSelectionPanel({
                       size="small"
                       icon={<UserOutlined />}
                       style={{
-                        backgroundColor: isCurrentVoter ? '#1890ff' : (voter.has_voted ? '#d9d9d9' : '#1890ff')
+                        backgroundColor: voter.has_voted ? '#d9d9d9' : '#1890ff'
                       }}
                     >
                       {voter.username?.charAt(0)?.toUpperCase()}
                     </Avatar>
                     <Space direction="vertical" size={0}>
-                      <Text strong style={{ color: isCurrentVoter ? '#1890ff' : 'inherit' }}>
+                      <Text strong>
                         {voter.full_name || voter.username}
-                        {isCurrentVoter && ' (当前)'}
                       </Text>
                       <Text type="secondary" style={{ fontSize: '12px' }}>
                         @{voter.username}
@@ -224,10 +218,6 @@ export function VoterSelectionPanel({
                   {voter.has_voted ? (
                     <Tag icon={<CheckCircleOutlined />} color={VOTE_OPTION_COLORS[voter.vote_option || 'default']}>
                       {VOTE_OPTION_LABELS[voter.vote_option || 'abstain']}
-                    </Tag>
-                  ) : isCurrentVoter ? (
-                    <Tag icon={<ClockCircleOutlined />} color="processing">
-                      投票中
                     </Tag>
                   ) : (
                     <Tag icon={<ClockCircleOutlined />} color="default">

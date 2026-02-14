@@ -1,7 +1,7 @@
 """Vote result archive model."""
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Integer, ForeignKey, Index, JSON, DateTime
+from sqlalchemy import Integer, ForeignKey, Index, JSON, DateTime, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -36,6 +36,7 @@ class VoteResult(Base, TimestampMixin, TenantMixin):
     requirement: Mapped["Requirement"] = relationship("Requirement")
 
     __table_args__ = (
+        UniqueConstraint('requirement_id', name='uq_vote_result_single_requirement'),  # 确保一个需求只有一个投票结果
         Index('ix_vote_results_tenant_meeting', 'tenant_id', 'meeting_id'),
         Index('ix_vote_results_archived_at', 'archived_at'),
     )
